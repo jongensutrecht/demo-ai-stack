@@ -45,11 +45,23 @@ Prioriteit:
 
 ### STAP 3 - Voer Story Uit
 
+⚠️ **KRITIEK - LEES DIT EERST:**
+- **NOOIT** stories zelf uitvoeren in de huidige context window
+- **ALTIJD** een nieuw claude subprocess spawnen per story
+- **WACHT** tot subprocess klaar is voordat je doorgaat (blocking call)
+- De subprocess heeft zijn eigen verse context en voert de story uit
+- Jij (de orchestrator) doet ALLEEN: spawn → wait → update status → next
+
 ```bash
-# Start nieuw Claude window voor story
+# Start nieuw Claude window voor story (VERPLICHT)
 claude --dangerously-skip-permissions \
   -p "Voer story <STORY_ID> uit. Story: stories_claude/<Process>/<STORY_ID>.md"
 ```
+
+**Waarom subprocess?**
+- Elke story krijgt verse context (geen rommel van vorige stories)
+- Voorkomt context exhaustion
+- Isolatie: als story faalt, blijft orchestrator intact
 
 ### STAP 4 - Update Status
 
