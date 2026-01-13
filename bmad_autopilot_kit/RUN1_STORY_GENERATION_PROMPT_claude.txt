@@ -1,0 +1,105 @@
+You are Claude Code. Generate BMAD story files for this repo.
+
+GOAL
+- Create BMAD story files as markdown in a deterministic SEQUENTIAL execution order.
+- Stories must NEVER be in random order.
+- The numbering OPS-001, OPS-002, ... is the canonical execution order.
+
+INPUTS (already in repo)
+- BMAD_STORY_LLM_PLAYBOOK  Seq force_claude.md (single source of truth for story structure and hard rules)
+- AI_STACK_STANDARD_BMAD_WORKTREES_GUARDRAILS seq force_claude.md (worktrees + guardrails)
+
+OUTPUT PATHS (hard)
+- Create folder: stories_claude/<process>/
+- Create files: OPS-001.md, OPS-002.md, OPS-003.md, ... (numbered, preferably no gaps)
+- Create BACKLOG.md: stories_claude/<process>/BACKLOG.md (for Ralph Loop tracking)
+
+BACKLOG.md FORMAT (hard)
+```markdown
+# BACKLOG - <process>
+
+| Story | Status | Attempts | Notes |
+|-------|--------|----------|-------|
+| OPS-001 | [TODO] | 0 | |
+| OPS-002 | [TODO] | 0 | |
+...
+```
+
+STORY REQUIREMENTS (hard)
+Each story file MUST:
+
+1) Follow the canonical headers/order from the playbook:
+   Context, Story, Acceptance Criteria, Tasks/Subtasks, Dev Notes, Dev Agent Record, Status
+
+2) FIRST TASK (hard): Every story's Tasks/Subtasks section MUST start with:
+   - [ ] Lees CLAUDE.md (repo-root) voor project regels en context
+
+3) LAST TASK (hard): Every story's Tasks/Subtasks section MUST end with:
+   - [ ] Run Gate A checks: `ruff check . && ruff format --check . && pytest` (alle checks moeten groen zijn)
+
+4) Acceptance Criteria (ACs):
+   - Every AC has EXACTLY 1 verification command + Expected output/exit/result.
+   - Commands are repo-root unless explicitly stated otherwise.
+   - If any verification is not executable, mark story Status as drafted (fail-closed).
+   - Every AC MUST reference a CTO Rule ID from docs/CTO_RULES.md (traceability).
+
+CTO TRACEABILITY (hard)
+For EACH AC, include these additional lines:
+- CTO Rule: `<RULE_ID>` (e.g., SEC-001, TEST-001, ARCH-001)
+- CTO Facet: `<FACET>` (e.g., Security, Testing, Architecture)
+
+Common CTO Rule IDs:
+- SEC-xxx: Security (auth, secrets, input validation)
+- TEST-xxx: Testing (coverage, assertions, edge cases)
+- ARCH-xxx: Architecture (separation, dependencies, patterns)
+- CODE-xxx: Code Quality (linting, formatting, complexity)
+- OPS-xxx: Operations (logging, monitoring, error handling)
+- DOC-xxx: Documentation (docstrings, README, comments)
+
+5) VERIFICATION MARKERS (hard; must be literal for parsing)
+For EACH AC, write these two lines EXACTLY (same labels, same punctuation):
+
+- Verification (repo-root): `<command>`
+- Expected: `<expected output/exit/result>`
+
+If an AC must run outside repo-root, write EXACTLY:
+
+- Verification (cwd=<path>): `<command>`
+- Expected: `<expected output/exit/result>`
+
+Notes:
+- Use backticks around the command and expected value exactly as shown.
+- Do not wrap these lines in code fences.
+
+6) Dev Notes MUST include:
+   - Scope + Out-of-scope (hard)
+   - No broad refactors rule (hard)
+   - Touched paths allowlist (repo-relative, exact prefixes)
+   - A subset check note: `git diff --name-only <BASE_REF_SHA>...HEAD` must be subset of allowlist
+   - Test/gate commands relevant to the touched paths
+   - Rollback plan (at least 1 command)
+
+DETERMINISTIC ORDER DESIGN (hard)
+- OPS-001 should be scaffolding / harness / plumbing required by later stories.
+- Later stories build on earlier ones. Hardening/edge cases last.
+- Avoid cross-story overlap: touched paths should be as disjoint as realistically possible.
+
+OPTIONAL BUT RECOMMENDED
+Create docs/processes/<process>/PROCESS.md containing:
+- `execution_mode: sequential`
+- `## Canonical Story Order (Sequential Default)` listing all OPS-xxx in the same order
+- compact dependencies per story (depends_on)
+
+HOW TO DERIVE STORIES
+- Inspect the repo: existing docs, scripts, TODOs, failing tests, and in-repo requirements.
+- Propose a minimal, correct story set that can be executed sequentially without merge pain.
+- Do NOT invent external requirements.
+
+DELIVERABLES
+- New markdown story files under stories_claude/<process>/
+- Optional PROCESS.md under docs/processes/<process>/
+- Commit all created files with message: "add BMAD stories (canonical order)"
+
+NOW IMPLEMENT
+- Generate the story files.
+- Ensure numbering/order is correct and dependency-safe.
