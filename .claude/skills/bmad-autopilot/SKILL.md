@@ -1,5 +1,5 @@
 ---
-name: bmad-autopilot
+name: start-bmad-ralph
 # prettier-ignore
 description: Start de BMAD autopilot voor story-driven development met CTO Guard.
 allowed-tools: Read, Grep, Glob, Bash, Task, Write, Edit
@@ -12,8 +12,8 @@ user-invocable: true
 
 ## Wanneer Activeren
 
-- `/bmad-autopilot` voor volledige workflow
-- `/bmad-autopilot --generate-only` voor alleen story generatie
+- `/start-bmad-ralph` voor volledige workflow
+- `/start-bmad-ralph --generate-only` voor alleen story generatie
 
 ## Vereiste Input
 

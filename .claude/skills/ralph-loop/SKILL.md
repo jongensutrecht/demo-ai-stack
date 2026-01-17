@@ -12,7 +12,7 @@ user-invocable: true
 
 ## Wanneer Activeren
 
-- `/ralph-loop` of automatisch via `/bmad-autopilot`
+- `/ralph-loop` of automatisch via `/start-bmad-ralph`
 
 ## Vereiste Input
 
@@ -46,4 +46,4 @@ Details: `python scripts/workflow.py`
 ## Referenties
 
 - [knowledge/backlog-format.md](knowledge/backlog-format.md)
-- `/bmad-autopilot`
+- `/start-bmad-ralph`
