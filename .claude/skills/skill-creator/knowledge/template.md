@@ -1,8 +1,6 @@
 # Skill Template
 
-Gebruik dit template voor nieuwe SKILL.md bestanden.
-
-## Template
+## SKILL.md Format
 
 ```markdown
 ---
@@ -16,61 +14,28 @@ user-invocable: true
 # {{Skill Title}}
 
 ## Doel
-{{1-2 zinnen wat de skill doet}}
+{{1-2 zinnen}}
 
 ## Wanneer Gebruiken
-- {{trigger phrase 1}}
-- {{trigger phrase 2}}
+- {{trigger}}
 
 ## Stappen
 1. {{stap}}
-2. {{stap}}
-3. {{stap}}
 
 ## Referenties
-- [knowledge/details.md](knowledge/details.md) - {{beschrijving}}
-
-## Output Format
-{{kort voorbeeld of verwijs naar knowledge/}}
+- [knowledge/details.md](knowledge/details.md)
 ```
 
 ## Regels
 
-### MUST (verplicht)
-- `description`: Single-line, max 80 karakters
-- `# prettier-ignore` direct boven description
-- Totaal SKILL.md: max 50 regels
-- `user-invocable: true` voor slash commands
+| Type | Regel |
+|------|-------|
+| MUST | description single-line, max 80 chars |
+| MUST | `# prettier-ignore` boven description |
+| MUST | SKILL.md max 50 regels |
+| SHOULD | Details in knowledge/*.md |
+| SHOULD | Logica in scripts/*.py |
 
-### SHOULD (aanbevolen)
-- Details in `knowledge/*.md` (niet in SKILL.md)
-- Logica in `scripts/*.py` (draait buiten context)
-- Kebab-case voor skill naam
+## Details
 
-### MUST NOT (verboden)
-- Multi-line description
-- Grote templates/voorbeelden embedden in SKILL.md
-- Meer dan 100 chars in description
-
-## Folder Structuur
-
-```
-.claude/skills/<skill-name>/
-├── SKILL.md              # Lean, max 50 regels
-├── knowledge/            # Details (Claude laadt on-demand)
-│   └── <topic>.md
-└── scripts/              # Optioneel: Python/Bash
-    └── <action>.py
-```
-
-## Allowed Tools Opties
-
-| Tools | Gebruik voor |
-|-------|--------------|
-| `Read` | Bestanden lezen |
-| `Write` | Bestanden schrijven |
-| `Edit` | Bestanden aanpassen |
-| `Bash` | Commands uitvoeren |
-| `Grep` | Zoeken in code |
-| `Glob` | Bestanden vinden |
-| `Task` | Sub-agents starten |
+Volledige template: `python scripts/template.py`
