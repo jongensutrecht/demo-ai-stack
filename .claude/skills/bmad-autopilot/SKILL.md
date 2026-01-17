@@ -1,15 +1,15 @@
 ---
 name: bmad-autopilot
 # prettier-ignore
-description: Start de BMAD autopilot voor story-driven development met CTO Guard.
+description: "Ralph Loop Regular: + CTO review + worktree. Story-driven development met volledige ceremony."
 allowed-tools: Read, Grep, Glob, Bash, Task, Write, Edit
 user-invocable: true
 ---
 
 # BMAD Autopilot
 
-> **Versie**: 3.0.0
-> **Doel**: Stories genereren en uitvoeren met CTO Guard validatie
+> **Versie**: 4.0.0
+> **Doel**: Stories genereren en uitvoeren met CTO Guard validatie en Test Guard integratie
 
 ---
 
@@ -28,14 +28,16 @@ user-invocable: true
 
 ---
 
-## Workflow (met CTO Guard)
+## Workflow (met CTO Guard + Test Guard)
 
 ### STAP 0 - Validatie (fail-closed)
 
 ```bash
 git rev-parse --show-toplevel
-ls bmad_autopilot_kit_claude/
+ls bmad_autopilot_kit/
 ls docs/CTO_RULES.md || echo "STOP: docs/CTO_RULES.md ontbreekt"
+ls invariants.md || echo "WARNING: invariants.md ontbreekt - run /invariant-discovery"
+ls test-requirements.yaml || echo "WARNING: test-requirements.yaml ontbreekt"
 ```
 
 ### STAP 1 - CTO GUARD #1: PRE-GENERATION
@@ -54,17 +56,36 @@ Process = slug(basename(INPUT_FILE))
 ```
 
 Output paden:
-- Stories: `stories_claude/<Process>/`
-- BACKLOG: `stories_claude/<Process>/BACKLOG.md`
+- Stories: `stories/<Process>/`
+- BACKLOG: `stories/<Process>/BACKLOG.md`
 
 ### STAP 3 - RUN1: Genereer Stories
 
-Voer uit: `bmad_autopilot_kit_claude/RUN1_STORY_GENERATION_PROMPT_claude.txt`
-
 **Elke story heeft:**
 - CTO Rule traceability per AC
+- **Test Requirements sectie** (nieuw in v4)
+- **Relevante Invariants sectie** (nieuw in v4)
 - Eerste taak: `- [ ] Lees CLAUDE.md`
 - Laatste taak: `- [ ] Run Gate A checks`
+
+**Story Template (uitgebreid):**
+```markdown
+## Test Requirements
+
+| Type | Required | Rationale |
+|------|----------|-----------|
+| unit | ✅ | Business logic |
+| integration | ❌ | Geen externe deps |
+| playwright | ✅ | UI flow |
+| contract | ❌ | Geen API changes |
+
+## Relevante Invariants
+
+| ID | Description | NEVER-Test Exists |
+|----|-------------|-------------------|
+| INV-SEC-001 | Auth required | [ ] |
+| INV-BIZ-001 | No negative totals | [ ] |
+```
 
 **Output:**
 - Story files (OPS-001.md, OPS-002.md, ...)
@@ -75,6 +96,7 @@ Voer uit: `bmad_autopilot_kit_claude/RUN1_STORY_GENERATION_PROMPT_claude.txt`
 **Valideer gegenereerde stories:**
 - Check: Heeft elke AC een CTO Rule referentie?
 - Check: Zijn alle verification commands executable?
+- Check: Heeft elke story een Test Requirements sectie?
 - Output: `/cto-guard` rapport
 
 Als ❌ NON-COMPLIANT: Fix stories of STOP
@@ -82,7 +104,7 @@ Als ❌ NON-COMPLIANT: Fix stories of STOP
 ### STAP 5 - Preflight
 
 ```bash
-pwsh ./bmad_autopilot_kit_claude/tools_claude/bmad-story-preflight_claude/preflight_claude.ps1 \
+pwsh ./tools/preflight/preflight.ps1 \
   -RepoRoot "<repo-root>" -Process "<Process>"
 ```
 
@@ -93,12 +115,15 @@ pwsh ./bmad_autopilot_kit_claude/tools_claude/bmad-story-preflight_claude/prefli
 ```bash
 # a) Start Claude voor story
 claude --dangerously-skip-permissions \
-  -p "Voer story <STORY_ID> uit. Story: stories_claude/<Process>/<STORY_ID>.md"
+  -p "Voer story <STORY_ID> uit. Story: stories/<Process>/<STORY_ID>.md"
 
 # b) Agent doet:
 #    - Leest CLAUDE.md
-#    - Voert story taken uit
-#    - Runt Gate A (ruff + pytest)
+#    - Leest Test Requirements
+#    - Schrijft NEVER-tests voor invariants
+#    - Schrijft required tests (unit/integration/playwright)
+#    - Implementeert story taken
+#    - Runt Gate A (ruff + pytest + test-gate + invariant-check)
 #    - Runt CTO GUARD #3 (post-execution)
 
 # c) Update BACKLOG.md status
@@ -109,19 +134,45 @@ claude --dangerously-skip-permissions \
 **Na Gate A, voor merge:**
 - Check: Geen security violations in nieuwe code?
 - Check: Tests coverage adequate?
+- Check: Alle required tests aanwezig (via test-gate)?
+- Check: Alle invariants gedekt (via invariant-check)?
 - Output: `/cto-guard` rapport
 
 Als ❌ NON-COMPLIANT: STOP, geen merge
 
 ---
 
+## Gate A (Uitgebreid)
+
+Gate A bevat nu:
+
+```bash
+# 1. Lint
+ruff check .
+
+# 2. Tests
+pytest
+
+# 3. Test Requirements Check (nieuw)
+pwsh tools/test-gate/test-gate.ps1 -RepoRoot .
+
+# 4. Invariant Coverage Check (nieuw)
+pwsh tools/invariant-check/invariant-check.ps1 -RepoRoot .
+```
+
+Alle vier moeten slagen.
+
+---
+
 ## Hard Rules
 
 1. **CTO Guard op 3 momenten** - Pre-gen, post-gen, post-exec
-2. **Gate A verplicht** - ruff + pytest moet groen
+2. **Gate A verplicht** - ruff + pytest + test-gate + invariant-check
 3. **Fail-closed** - Bij non-compliant: STOP
 4. **BACKLOG tracking** - Status updates in BACKLOG.md
 5. **Sequentieel** - Stories in canonieke volgorde
+6. **Test Requirements verplicht** - Elke story heeft Test Requirements sectie
+7. **Invariants verplicht** - Relevante invariants gelinkt aan story
 
 ---
 
@@ -129,11 +180,17 @@ Als ❌ NON-COMPLIANT: STOP, geen merge
 
 - `/cto-guard` - Standalone CTO validatie
 - `/ralph-loop` - Continue iteratie over stories
+- `/test-guard` - Test requirements validatie
+- `/invariant-discovery` - Invarianten ontdekken
 
 ---
 
 ## Gerelateerde Bestanden
 
-- `bmad_autopilot_kit_claude/RUN1_STORY_GENERATION_PROMPT_claude.txt`
+- `bmad_autopilot_kit/RUN1_STORY_GENERATION_PROMPT.txt`
 - `docs/CTO_RULES.md` - CTO validation rules
 - `docs/CONTRACT.md` - Story format contract
+- `test-requirements.yaml` - Per-path test requirements
+- `invariants.md` - Project invariants
+- `tools/test-gate/test-gate.ps1` - Test requirements checker
+- `tools/invariant-check/invariant-check.ps1` - Invariant checker

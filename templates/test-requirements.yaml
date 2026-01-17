@@ -1,0 +1,113 @@
+# Test Requirements Configuration - Finance Insights Hub
+# ======================================================
+#
+# Project-specific test requirements.
+# Based on bmad-quality-kit template, customized for this codebase.
+
+version: "1.0"
+
+# Test file detectie patterns
+test_patterns:
+  unit:
+    - "tests/**/test_*.py"
+    - "tests/**/*_test.py"
+
+  integration:
+    - "tests/integration/**/*.py"
+    - "tests/**/test_*integration*.py"
+
+  e2e:
+    - "tests/e2e/**/*.py"
+
+# Regels: welke tests zijn verplicht per path pattern?
+rules:
+  # External connectors: unit + integration (externe API calls)
+  - pattern: "src/app/connectors/**/*.py"
+    required: [unit, integration]
+    rationale: "Connectors (WeFact, Exact, Hours) interact with external APIs"
+
+  # LLM providers: unit + integration
+  - pattern: "src/app/llm/providers/*.py"
+    required: [unit, integration]
+    rationale: "LLM providers call external AI services"
+
+  # Sync services: unit + integration (database + external APIs)
+  - pattern: "src/app/sync/**/*.py"
+    required: [unit, integration]
+    rationale: "Sync services orchestrate data between systems"
+
+  # Scheduler: unit + integration
+  - pattern: "src/app/scheduler/*.py"
+    required: [unit, integration]
+    rationale: "Scheduled jobs interact with database and external services"
+
+  # Database layer: integration tests
+  - pattern: "src/app/db/*.py"
+    required: [unit, integration]
+    rationale: "Database layer needs integration tests"
+
+  # Models: unit + integration
+  - pattern: "src/app/models/*.py"
+    required: [unit, integration]
+    rationale: "ORM models need database integration tests"
+
+  # Repositories: unit + integration
+  - pattern: "src/app/repositories/*.py"
+    required: [unit, integration]
+    rationale: "Data access layer needs integration tests"
+
+  # Business logic (insights, classification)
+  - pattern: "src/app/insights/**/*.py"
+    required: [unit]
+    rationale: "Business logic calculations need thorough unit tests"
+
+  - pattern: "src/app/classification/*.py"
+    required: [unit]
+    rationale: "Classification logic is pure business rules"
+
+  # Core utilities
+  - pattern: "src/app/core/*.py"
+    required: [unit]
+    rationale: "Core utilities are pure functions"
+
+  # Chat tools
+  - pattern: "src/app/tools/*.py"
+    required: [unit]
+    rationale: "Chat tools need unit tests for logic"
+
+  # Main entrypoint
+  - pattern: "src/app/main.py"
+    required: [unit]
+    rationale: "API routes need unit tests"
+
+  # Init files: no tests needed
+  - pattern: "src/**/__init__.py"
+    required: []
+    rationale: "Init files don't need tests"
+
+  # LLM base classes
+  - pattern: "src/app/llm/*.py"
+    required: [unit]
+    rationale: "LLM utilities and models"
+
+  # Token management
+  - pattern: "src/app/tokens/*.py"
+    required: [unit, integration]
+    rationale: "Token storage interacts with database"
+
+# Exclusies
+exclusions:
+  - "**/__pycache__/**"
+  - "**/.git/**"
+  - "**/alembic/**"
+  - "**/.venv/**"
+  - "**/venv/**"
+
+# Coverage thresholds
+coverage:
+  unit:
+    minimum: 80
+    fail_under: true
+  integration:
+    minimum: 60
+    fail_under: false

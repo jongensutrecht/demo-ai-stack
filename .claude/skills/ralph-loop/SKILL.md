@@ -8,21 +8,21 @@ user-invocable: true
 
 # Ralph Loop
 
-> **Versie**: 1.0.0
-> **Doel**: Automatische iteratie over BMAD stories tot completion
+> **Versie**: 2.0.0
+> **Doel**: Automatische iteratie over BMAD stories tot completion met test enforcement
 
 ---
 
 ## Wanneer Activeren
 
 - `/ralph-loop` voor handmatige start
-- Automatisch via `/start-bmad-ralph`
+- Automatisch via `/bmad-autopilot`
 
 ---
 
 ## Vereiste Input
 
-**BACKLOG.md moet bestaan** in `stories_claude/<Process>/BACKLOG.md`
+**BACKLOG.md moet bestaan** in `stories/<Process>/BACKLOG.md`
 
 Als geen BACKLOG: STOP fail-closed met instructie om eerst `/bmad-autopilot` te runnen.
 
@@ -34,7 +34,7 @@ Als geen BACKLOG: STOP fail-closed met instructie om eerst `/bmad-autopilot` te 
 
 ```bash
 # Vind open stories
-grep -E "\[TODO\]|\[IN_PROGRESS\]" stories_claude/<Process>/BACKLOG.md
+grep -E "\[TODO\]|\[IN_PROGRESS\]" stories/<Process>/BACKLOG.md
 ```
 
 ### STAP 2 - Pak Volgende Story
@@ -55,8 +55,22 @@ Prioriteit:
 ```bash
 # Start nieuw Claude window voor story (VERPLICHT)
 claude --dangerously-skip-permissions \
-  -p "Voer story <STORY_ID> uit. Story: stories_claude/<Process>/<STORY_ID>.md"
+  -p "Voer story <STORY_ID> uit. Story: stories/<Process>/<STORY_ID>.md"
 ```
+
+**Story Agent Workflow (in subprocess):**
+1. Lees CLAUDE.md
+2. Lees story file
+3. **Lees Test Requirements sectie**
+4. **Schrijf NEVER-tests voor gelinkte invariants**
+5. **Schrijf required tests (unit/integration/playwright)**
+6. Implementeer story taken
+7. **Run Gate A (uitgebreid):**
+   - ruff check
+   - pytest
+   - test-gate.ps1
+   - invariant-check.ps1
+8. CTO Guard #3 post-execution check
 
 **Waarom subprocess?**
 - Elke story krijgt verse context (geen rommel van vorige stories)
@@ -87,6 +101,30 @@ Zie [knowledge/backlog-format.md](knowledge/backlog-format.md)
 
 ---
 
+## Gate A (Uitgebreid)
+
+Elke story moet deze gate passeren:
+
+```bash
+# 1. Lint
+ruff check .
+
+# 2. All tests
+pytest
+
+# 3. Test Requirements Gate
+pwsh tools/test-gate/test-gate.ps1 -RepoRoot .
+# Exit 1 als required tests ontbreken
+
+# 4. Invariant Coverage Gate
+pwsh tools/invariant-check/invariant-check.ps1 -RepoRoot .
+# Exit 1 als invariants geen NEVER-tests hebben
+```
+
+Alle vier moeten exit 0 geven.
+
+---
+
 ## Safeguards
 
 | Safeguard | Waarde |
@@ -97,7 +135,30 @@ Zie [knowledge/backlog-format.md](knowledge/backlog-format.md)
 
 ---
 
+## Failure Handling
+
+### Test Gate Failure
+```
+Story OPS-003 failed test-gate:
+- Missing playwright test for components/Modal.tsx
+
+Action: Create tests/e2e/modal.spec.ts
+Retry: 1/3
+```
+
+### Invariant Check Failure
+```
+Story OPS-004 failed invariant-check:
+- Uncovered invariant: INV-SEC-001
+
+Action: Create tests/invariants/auth/test_never_auth_bypass.py
+Retry: 1/3
+```
+
+---
+
 ## Gerelateerde Skills
 
 - `/bmad-autopilot` - Genereert stories en BACKLOG.md
 - `/cto-guard` - Valideert code na elke story
+- `/test-guard` - Test requirements validatie

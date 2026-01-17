@@ -1,18 +1,18 @@
 ---
-name: create-skill
+name: skill-creator
 # prettier-ignore
 description: Maak een nieuwe Claude Code skill met correcte structuur en best practices.
 allowed-tools: Read, Write, Bash
 user-invocable: true
 ---
 
-# Create Skill
+# Skill Creator
 
 ## Doel
 Genereer een nieuwe skill folder met SKILL.md volgens de standaard.
 
 ## Wanneer Gebruiken
-- `/create-skill`
+- `/skill-creator`
 - "maak een nieuwe skill"
 - "genereer skill template"
 
