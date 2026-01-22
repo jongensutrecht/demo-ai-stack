@@ -14,15 +14,21 @@ Write-Host ""
 
 # 1. Installeer global skills
 $globalSkillsPath = Join-Path $env:USERPROFILE ".claude\skills"
+$skillsRoot = Join-Path $PSScriptRoot "skills"
+
+if (-not (Test-Path $skillsRoot)) {
+    Write-Host "[-] Skills folder niet gevonden: $skillsRoot" -ForegroundColor Red
+    exit 1
+}
 
 if (-not (Test-Path $globalSkillsPath)) {
     Write-Host "[+] Maak global skills folder aan..." -ForegroundColor Yellow
     New-Item -ItemType Directory -Path $globalSkillsPath -Force | Out-Null
 }
 
-$skills = @("bmad-autopilot", "cto-guard", "ralph-loop")
+$skills = Get-ChildItem -Path $skillsRoot -Directory | Select-Object -ExpandProperty Name
 foreach ($skill in $skills) {
-    $source = Join-Path $PSScriptRoot ".claude\skills\$skill"
+    $source = Join-Path $skillsRoot $skill
     $dest = Join-Path $globalSkillsPath $skill
 
     if (Test-Path $source) {
@@ -35,6 +41,7 @@ foreach ($skill in $skills) {
 
 Write-Host ""
 Write-Host "[OK] Global skills geinstalleerd in: $globalSkillsPath" -ForegroundColor Green
+Write-Host "[OK] Aantal skills: $($skills.Count)" -ForegroundColor Green
 Write-Host ""
 
 # 2. Kopieer kit naar project (optioneel)
@@ -69,8 +76,6 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Installatie voltooid!" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Beschikbare commands:" -ForegroundColor White
-Write-Host "  /bmad-autopilot  - Start story-driven development" -ForegroundColor Gray
-Write-Host "  /cto-guard       - Valideer tegen CTO regels" -ForegroundColor Gray
-Write-Host "  /ralph-loop      - Continue iteratie" -ForegroundColor Gray
+Write-Host "Beschikbare skills:" -ForegroundColor White
+Write-Host "  (Zie ~/.claude/skills voor alle geïnstalleerde skills)" -ForegroundColor Gray
 Write-Host ""

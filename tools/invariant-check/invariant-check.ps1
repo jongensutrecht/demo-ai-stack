@@ -15,6 +15,9 @@
 .PARAMETER TestsDir
     Directory containing invariant tests. Defaults to RepoRoot/tests/invariants.
 
+.PARAMETER JsonOutput
+    Write JSON report to file.
+
 .PARAMETER DryRun
     Show what would be checked without actually failing.
 
@@ -27,6 +30,7 @@ param(
     [string]$RepoRoot = (Get-Location).Path,
     [string]$InvariantsFile = "",
     [string]$TestsDir = "",
+    [string]$JsonOutput = "",
     [switch]$DryRun,
     [switch]$Verbose
 )
@@ -242,11 +246,28 @@ Write-Host ""
 
 # Check if invariants file exists
 if (-not (Test-Path $InvariantsFile)) {
-    Write-Warning "invariants.md not found at: $InvariantsFile"
-    Write-Warning "Skipping invariant check (no file)"
-    Write-Host ""
-    Write-Host "To create invariants.md, run: /invariant-discovery"
-    exit 0
+    Write-Error "invariants.md not found at: $InvariantsFile"
+    Write-Host "FAIL-CLOSED: invariants.md is verplicht. Run: /invariant-discovery"
+    if ($JsonOutput) {
+        $jsonPath = (Resolve-Path -LiteralPath $JsonOutput -ErrorAction SilentlyContinue)
+        if (-not $jsonPath) {
+            $jsonPath = $JsonOutput
+        } else {
+            $jsonPath = $jsonPath.Path
+        }
+        $dir = Split-Path -Parent $jsonPath
+        if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+        $report = [ordered]@{
+            tool = "invariant-check"
+            repo_root = $RepoRoot
+            invariants = $InvariantsFile
+            tests_dir = $TestsDir
+            error = "missing_invariants_file"
+            exit_code = 2
+        }
+        ($report | ConvertTo-Json -Depth 10) | Set-Content -LiteralPath $jsonPath -Encoding UTF8
+    }
+    exit 2
 }
 
 # Parse invariants
@@ -256,6 +277,29 @@ Write-Info "Found $($invariants.Count) invariants in file"
 if ($invariants.Count -eq 0) {
     Write-Warning "No invariants found in file"
     Write-Warning "Invariants should be in format: - [ ] **INV-XXX-NNN**: Description"
+    if ($JsonOutput) {
+        $jsonPath = (Resolve-Path -LiteralPath $JsonOutput -ErrorAction SilentlyContinue)
+        if (-not $jsonPath) {
+            $jsonPath = $JsonOutput
+        } else {
+            $jsonPath = $jsonPath.Path
+        }
+        $dir = Split-Path -Parent $jsonPath
+        if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+        $report = [ordered]@{
+            tool = "invariant-check"
+            repo_root = $RepoRoot
+            invariants = $InvariantsFile
+            tests_dir = $TestsDir
+            total_invariants = 0
+            covered = 0
+            uncovered = @()
+            coverage_percent = 0
+            exit_code = 0
+            dry_run = [bool]$DryRun
+        }
+        ($report | ConvertTo-Json -Depth 10) | Set-Content -LiteralPath $jsonPath -Encoding UTF8
+    }
     exit 0
 }
 
@@ -345,7 +389,7 @@ Write-Host ""
 if ($uncovered.Count -gt 0) {
     if ($DryRun) {
         Write-Warning "DRY RUN - Would fail with exit code 1"
-        exit 0
+        $exitCode = 0
     }
     else {
         Write-Error "INVARIANT CHECK FAILED - Uncovered invariants found"
@@ -363,10 +407,38 @@ if ($uncovered.Count -gt 0) {
         Write-Host "    business/"
         Write-Host "      test_never_negative_invoice.py"
         Write-Host ""
-        exit 1
+        $exitCode = 1
     }
 }
 else {
     Write-Success "INVARIANT CHECK PASSED - All invariants have NEVER-tests"
-    exit 0
+    $exitCode = 0
 }
+
+if ($JsonOutput) {
+    $jsonPath = (Resolve-Path -LiteralPath $JsonOutput -ErrorAction SilentlyContinue)
+    if (-not $jsonPath) {
+        $jsonPath = $JsonOutput
+    } else {
+        $jsonPath = $jsonPath.Path
+    }
+    $dir = Split-Path -Parent $jsonPath
+    if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+
+    $report = [ordered]@{
+        tool = "invariant-check"
+        repo_root = $RepoRoot
+        invariants = $InvariantsFile
+        tests_dir = $TestsDir
+        total_invariants = $invariants.Count
+        covered = $covered.Count
+        uncovered = $uncovered
+        coverage_percent = $coveragePercent
+        exit_code = $exitCode
+        dry_run = [bool]$DryRun
+    }
+
+    ($report | ConvertTo-Json -Depth 50) | Set-Content -LiteralPath $jsonPath -Encoding UTF8
+}
+
+exit $exitCode

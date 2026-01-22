@@ -11,6 +11,7 @@
 #   -r, --repo-root PATH    Repository root (default: current directory)
 #   -c, --config PATH       Path to test-requirements.yaml
 #   -d, --dry-run           Show what would be checked without failing
+#   -j, --json-output PATH  Write JSON report to file
 #   -v, --verbose           Show detailed output
 #   -h, --help              Show this help
 #
@@ -34,6 +35,7 @@ REPO_ROOT="."
 CONFIG_PATH=""
 DRY_RUN=false
 VERBOSE=false
+JSON_OUTPUT=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -49,6 +51,10 @@ while [[ $# -gt 0 ]]; do
         -d|--dry-run)
             DRY_RUN=true
             shift
+            ;;
+        -j|--json-output)
+            JSON_OUTPUT="$2"
+            shift 2
             ;;
         -v|--verbose)
             VERBOSE=true
@@ -75,6 +81,26 @@ fi
 # Check config exists
 if [[ ! -f "$CONFIG_PATH" ]]; then
     echo -e "${RED}[ERROR] Config not found: $CONFIG_PATH${NC}"
+    if [[ -n "$JSON_OUTPUT" ]]; then
+        JSON_OUTPUT="$JSON_OUTPUT" \
+        REPO_ROOT="$REPO_ROOT" \
+        CONFIG_PATH="$CONFIG_PATH" \
+        python - <<'PY'
+import json, os
+from pathlib import Path
+
+out_path = Path(os.environ["JSON_OUTPUT"])
+out_path.parent.mkdir(parents=True, exist_ok=True)
+data = {
+    "tool": "test-gate",
+    "repo_root": os.environ.get("REPO_ROOT", ""),
+    "config": os.environ.get("CONFIG_PATH", ""),
+    "error": "missing_config",
+    "exit_code": 2,
+}
+out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+PY
+    fi
     exit 2
 fi
 
@@ -92,15 +118,78 @@ echo ""
 
 # Get changed files (staged + unstaged)
 cd "$REPO_ROOT"
-CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null || git diff --name-only --cached 2>/dev/null || find . -name "*.py" -o -name "*.ts" | head -50)
+CHANGED_SOURCE=""
 
-if [[ -z "$CHANGED_FILES" ]]; then
-    echo -e "${YELLOW}[WARN] No changed files detected, checking all source files${NC}"
-    CHANGED_FILES=$(find src -name "*.py" 2>/dev/null | sed 's|^\./||' || echo "")
-fi
+get_changed_files() {
+    local files=""
+
+    if git rev-parse --verify HEAD >/dev/null 2>&1; then
+        files=$(git diff --name-only HEAD 2>/dev/null || true)
+        if [[ -n "$files" ]]; then
+            CHANGED_SOURCE="git diff HEAD"
+            printf '%s\n' "$files"
+            return
+        fi
+    fi
+
+    files=$(git diff --name-only --cached 2>/dev/null || true)
+    if [[ -n "$files" ]]; then
+        CHANGED_SOURCE="git diff --cached"
+        printf '%s\n' "$files"
+        return
+    fi
+
+    files=$(git ls-files 2>/dev/null || true)
+    if [[ -n "$files" ]]; then
+        CHANGED_SOURCE="git ls-files"
+        printf '%s\n' "$files"
+        return
+    fi
+
+    files=$(find src -type f \( -name "*.py" -o -name "*.ts" -o -name "*.tsx" \) 2>/dev/null | sed 's|^\./||' || true)
+    if [[ -n "$files" ]]; then
+        CHANGED_SOURCE="find src"
+        printf '%s\n' "$files"
+        return
+    fi
+
+    CHANGED_SOURCE="none"
+}
+
+CHANGED_FILES=$(get_changed_files || true)
+echo -e "[INFO] Changed files source: $CHANGED_SOURCE"
+CHANGED_FILES_JOINED=$(printf '%s\n' "$CHANGED_FILES")
 
 if [[ -z "$CHANGED_FILES" ]]; then
     echo -e "${GREEN}[OK] No files to check${NC}"
+    EXIT_CODE=0
+    if [[ -n "$JSON_OUTPUT" ]]; then
+        JSON_OUTPUT="$JSON_OUTPUT" \
+        REPO_ROOT="$REPO_ROOT" \
+        CONFIG_PATH="$CONFIG_PATH" \
+        CHANGED_SOURCE="$CHANGED_SOURCE" \
+        DRY_RUN="$DRY_RUN" \
+        python - <<'PY'
+import json, os
+from pathlib import Path
+
+out_path = Path(os.environ["JSON_OUTPUT"])
+out_path.parent.mkdir(parents=True, exist_ok=True)
+data = {
+    "tool": "test-gate",
+    "repo_root": os.environ.get("REPO_ROOT", ""),
+    "config": os.environ.get("CONFIG_PATH", ""),
+    "changed_source": os.environ.get("CHANGED_SOURCE", ""),
+    "changed_files": [],
+    "files_checked": 0,
+    "tests_found": 0,
+    "missing_tests": [],
+    "exit_code": 0,
+    "dry_run": os.environ.get("DRY_RUN", "false") == "true",
+}
+out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+PY
+    fi
     exit 0
 fi
 
@@ -207,26 +296,38 @@ check_rule() {
             case "$test_type" in
                 unit)
                     # Look for unit tests
-                    if find tests -name "*${base_name}*" -o -name "test_${base_name}*" 2>/dev/null | grep -q .; then
-                        test_exists=true
-                    fi
-                    if find . -name "*.test.ts" -o -name "*.spec.ts" 2>/dev/null | xargs grep -l "$base_name" 2>/dev/null | grep -q .; then
-                        test_exists=true
+                    if [ -d tests ]; then
+                        if find tests -type f \( -name "*${base_name}*" -o -name "test_${base_name}*" \) 2>/dev/null | grep -q .; then
+                            test_exists=true
+                        fi
+                        if ! $test_exists; then
+                            if command -v rg >/dev/null 2>&1; then
+                                find tests -type f \( -name "*.test.ts" -o -name "*.spec.ts" \) -print0 2>/dev/null \
+                                    | xargs -0 rg -l --fixed-strings "$base_name" 2>/dev/null | grep -q . && test_exists=true
+                            else
+                                find tests -type f \( -name "*.test.ts" -o -name "*.spec.ts" \) -print0 2>/dev/null \
+                                    | xargs -0 grep -l "$base_name" 2>/dev/null | grep -q . && test_exists=true
+                            fi
+                        fi
                     fi
                     ;;
                 integration)
-                    if find tests/integration -name "*${base_name}*" 2>/dev/null | grep -q .; then
-                        test_exists=true
+                    if [ -d tests/integration ]; then
+                        if find tests/integration -type f -name "*${base_name}*" 2>/dev/null | grep -q .; then
+                            test_exists=true
+                        fi
                     fi
                     ;;
                 playwright|e2e)
-                    if find tests/e2e e2e -name "*.spec.ts" 2>/dev/null | grep -q .; then
+                    if find tests/e2e e2e -type f -name "*.spec.ts" 2>/dev/null | grep -q .; then
                         test_exists=true
                     fi
                     ;;
                 contract)
-                    if find tests/contract -name "*${base_name}*" 2>/dev/null | grep -q .; then
-                        test_exists=true
+                    if [ -d tests/contract ]; then
+                        if find tests/contract -type f -name "*${base_name}*" 2>/dev/null | grep -q .; then
+                            test_exists=true
+                        fi
                     fi
                     ;;
             esac
@@ -269,11 +370,56 @@ if [[ ${#MISSING_TESTS[@]} -gt 0 ]]; then
 
     if $DRY_RUN; then
         echo -e "${YELLOW}[DRY RUN] Would fail with exit code 1${NC}"
-        exit 0
+        EXIT_CODE=0
     else
-        exit 1
+        EXIT_CODE=1
     fi
 else
     echo -e "${GREEN}[PASS] All required tests exist${NC}"
-    exit 0
+    EXIT_CODE=0
 fi
+
+if [[ -n "$JSON_OUTPUT" ]]; then
+    MISSING_TESTS_JOINED=$(printf '%s\n' "${MISSING_TESTS[@]}")
+    JSON_OUTPUT="$JSON_OUTPUT" \
+    REPO_ROOT="$REPO_ROOT" \
+    CONFIG_PATH="$CONFIG_PATH" \
+    CHANGED_SOURCE="$CHANGED_SOURCE" \
+    CHANGED_FILES_JOINED="$CHANGED_FILES_JOINED" \
+    MISSING_TESTS_JOINED="$MISSING_TESTS_JOINED" \
+    CHECKED_COUNT="$CHECKED_COUNT" \
+    PASSED_COUNT="$PASSED_COUNT" \
+    EXIT_CODE="$EXIT_CODE" \
+    DRY_RUN="$DRY_RUN" \
+    python - <<'PY'
+import json, os
+from pathlib import Path
+
+out_path = Path(os.environ["JSON_OUTPUT"])
+out_path.parent.mkdir(parents=True, exist_ok=True)
+
+changed_files = [
+    line for line in os.environ.get("CHANGED_FILES_JOINED", "").splitlines() if line.strip()
+]
+missing = [
+    line for line in os.environ.get("MISSING_TESTS_JOINED", "").splitlines() if line.strip()
+]
+
+data = {
+    "tool": "test-gate",
+    "repo_root": os.environ.get("REPO_ROOT", ""),
+    "config": os.environ.get("CONFIG_PATH", ""),
+    "changed_source": os.environ.get("CHANGED_SOURCE", ""),
+    "changed_files": changed_files,
+    "files_checked": int(os.environ.get("CHECKED_COUNT", "0")),
+    "tests_found": int(os.environ.get("PASSED_COUNT", "0")),
+    "missing_tests": missing,
+    "exit_code": int(os.environ.get("EXIT_CODE", "0")),
+    "dry_run": os.environ.get("DRY_RUN", "false") == "true",
+}
+
+out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+PY
+fi
+
+exit "$EXIT_CODE"

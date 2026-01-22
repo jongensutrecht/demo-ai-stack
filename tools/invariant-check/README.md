@@ -16,6 +16,12 @@ pwsh invariant-check.ps1 -RepoRoot . -DryRun
 
 # Verbose output
 pwsh invariant-check.ps1 -RepoRoot . -Verbose
+
+# JSON output
+pwsh invariant-check.ps1 -RepoRoot . -JsonOutput artifacts/debug/invariant-check.json
+
+# JSON output (bash)
+./invariant-check.sh --json-output artifacts/debug/invariant-check.json
 ```
 
 ## How It Works
@@ -91,6 +97,7 @@ class TestNeverAuthBypass:
 |------|---------|
 | 0 | All invariants have NEVER-tests |
 | 1 | Some invariants lack NEVER-tests |
+| 2 | Missing invariants file |
 
 ## Example Output
 

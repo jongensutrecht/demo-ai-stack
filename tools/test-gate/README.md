@@ -16,6 +16,12 @@ pwsh test-gate.ps1 -RepoRoot . -DryRun
 
 # Verbose output
 pwsh test-gate.ps1 -RepoRoot . -Verbose
+
+# JSON output
+pwsh test-gate.ps1 -RepoRoot . -JsonOutput artifacts/debug/test-gate.json
+
+# JSON output (bash)
+./test-gate.sh --json-output artifacts/debug/test-gate.json
 ```
 
 ## How It Works
@@ -61,6 +67,7 @@ exclusions:
 |------|---------|
 | 0 | All required tests present |
 | 1 | Missing required tests |
+| 2 | Missing or invalid config |
 
 ## Example Output
 

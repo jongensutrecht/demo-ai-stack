@@ -11,6 +11,7 @@
 #   -r, --repo-root PATH       Repository root (default: current directory)
 #   -i, --invariants PATH      Path to invariants.md
 #   -d, --dry-run              Show what would be checked without failing
+#   -j, --json-output PATH     Write JSON report to file
 #   -v, --verbose              Show detailed output
 #   -h, --help                 Show this help
 #
@@ -34,6 +35,7 @@ REPO_ROOT="."
 INVARIANTS_PATH=""
 DRY_RUN=false
 VERBOSE=false
+JSON_OUTPUT=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -49,6 +51,10 @@ while [[ $# -gt 0 ]]; do
         -d|--dry-run)
             DRY_RUN=true
             shift
+            ;;
+        -j|--json-output)
+            JSON_OUTPUT="$2"
+            shift 2
             ;;
         -v|--verbose)
             VERBOSE=true
@@ -75,6 +81,26 @@ fi
 # Check invariants file exists
 if [[ ! -f "$INVARIANTS_PATH" ]]; then
     echo -e "${RED}[ERROR] Invariants file not found: $INVARIANTS_PATH${NC}"
+    if [[ -n "$JSON_OUTPUT" ]]; then
+        JSON_OUTPUT="$JSON_OUTPUT" \
+        REPO_ROOT="$REPO_ROOT" \
+        INVARIANTS_PATH="$INVARIANTS_PATH" \
+        python - <<'PY'
+import json, os
+from pathlib import Path
+
+out_path = Path(os.environ["JSON_OUTPUT"])
+out_path.parent.mkdir(parents=True, exist_ok=True)
+data = {
+    "tool": "invariant-check",
+    "repo_root": os.environ.get("REPO_ROOT", ""),
+    "invariants": os.environ.get("INVARIANTS_PATH", ""),
+    "error": "missing_invariants_file",
+    "exit_code": 2,
+}
+out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+PY
+    fi
     exit 2
 fi
 
@@ -194,6 +220,30 @@ parse_invariants
 if [[ ${#ALL_INVARIANTS[@]} -eq 0 ]]; then
     echo -e "${YELLOW}[WARN] No invariants found in $INVARIANTS_PATH${NC}"
     echo -e "[INFO] Expected format: - [ ] **INV-SEC-001**: Description"
+    EXIT_CODE=0
+    if [[ -n "$JSON_OUTPUT" ]]; then
+        JSON_OUTPUT="$JSON_OUTPUT" \
+        REPO_ROOT="$REPO_ROOT" \
+        INVARIANTS_PATH="$INVARIANTS_PATH" \
+        python - <<'PY'
+import json, os
+from pathlib import Path
+
+out_path = Path(os.environ["JSON_OUTPUT"])
+out_path.parent.mkdir(parents=True, exist_ok=True)
+data = {
+    "tool": "invariant-check",
+    "repo_root": os.environ.get("REPO_ROOT", ""),
+    "invariants": os.environ.get("INVARIANTS_PATH", ""),
+    "total_invariants": 0,
+    "covered": 0,
+    "uncovered": [],
+    "coverage_percent": 0,
+    "exit_code": 0,
+}
+out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+PY
+    fi
     exit 0
 fi
 
@@ -241,11 +291,71 @@ if [[ ${#UNCOVERED_INVARIANTS[@]} -gt 0 ]]; then
 
     if $DRY_RUN; then
         echo -e "${YELLOW}[DRY RUN] Would fail with exit code 1${NC}"
-        exit 0
+        EXIT_CODE=0
     else
-        exit 1
+        EXIT_CODE=1
     fi
 else
     echo -e "${GREEN}[PASS] All invariants have NEVER-tests${NC}"
-    exit 0
+    EXIT_CODE=0
 fi
+
+if [[ -n "$JSON_OUTPUT" ]]; then
+    UNCOVERED_JOINED=$(printf '%s\n' "${UNCOVERED_INVARIANTS[@]}")
+    JSON_OUTPUT="$JSON_OUTPUT" \
+    REPO_ROOT="$REPO_ROOT" \
+    INVARIANTS_PATH="$INVARIANTS_PATH" \
+    TOTAL_INVARIANTS="${#ALL_INVARIANTS[@]}" \
+    COVERED_COUNT="${#COVERED_INVARIANTS[@]}" \
+    UNCOVERED_JOINED="$UNCOVERED_JOINED" \
+    EXIT_CODE="$EXIT_CODE" \
+    DRY_RUN="$DRY_RUN" \
+    python - <<'PY'
+import json, os
+from pathlib import Path
+
+def parse_uncovered(lines):
+    items = []
+    for line in lines:
+        parts = line.split("|", 2)
+        if len(parts) == 3:
+            inv_id, description, category = parts
+            items.append(
+                {
+                    "id": inv_id,
+                    "description": description,
+                    "category": category,
+                }
+            )
+    return items
+
+out_path = Path(os.environ["JSON_OUTPUT"])
+out_path.parent.mkdir(parents=True, exist_ok=True)
+
+uncovered_raw = [
+    line for line in os.environ.get("UNCOVERED_JOINED", "").splitlines() if line.strip()
+]
+uncovered = parse_uncovered(uncovered_raw)
+
+total = int(os.environ.get("TOTAL_INVARIANTS", "0"))
+covered = int(os.environ.get("COVERED_COUNT", "0"))
+coverage = 0
+if total > 0:
+    coverage = int((covered * 100) / total)
+
+data = {
+    "tool": "invariant-check",
+    "repo_root": os.environ.get("REPO_ROOT", ""),
+    "invariants": os.environ.get("INVARIANTS_PATH", ""),
+    "total_invariants": total,
+    "covered": covered,
+    "uncovered": uncovered,
+    "coverage_percent": coverage,
+    "exit_code": int(os.environ.get("EXIT_CODE", "0")),
+    "dry_run": os.environ.get("DRY_RUN", "false") == "true",
+}
+out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+PY
+fi
+
+exit "$EXIT_CODE"

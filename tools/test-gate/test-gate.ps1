@@ -15,6 +15,9 @@
 .PARAMETER DiffBase
     Git ref to compare against. Defaults to HEAD~1.
 
+.PARAMETER JsonOutput
+    Write JSON report to file.
+
 .PARAMETER DryRun
     Show what would be checked without actually failing.
 
@@ -27,6 +30,7 @@ param(
     [string]$RepoRoot = (Get-Location).Path,
     [string]$ConfigFile = "",
     [string]$DiffBase = "HEAD~1",
+    [string]$JsonOutput = "",
     [switch]$DryRun,
     [switch]$Verbose
 )
@@ -202,9 +206,27 @@ Write-Host ""
 
 # Check if config exists
 if (-not (Test-Path $ConfigFile)) {
-    Write-Warning "test-requirements.yaml not found at: $ConfigFile"
-    Write-Warning "Skipping test gate check (no config)"
-    exit 0
+    Write-Error "test-requirements.yaml not found at: $ConfigFile"
+    Write-Host "FAIL-CLOSED: test gate vereist een config. Maak test-requirements.yaml aan."
+    if ($JsonOutput) {
+        $jsonPath = (Resolve-Path -LiteralPath $JsonOutput -ErrorAction SilentlyContinue)
+        if (-not $jsonPath) {
+            $jsonPath = $JsonOutput
+        } else {
+            $jsonPath = $jsonPath.Path
+        }
+        $dir = Split-Path -Parent $jsonPath
+        if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+        $report = [ordered]@{
+            tool = "test-gate"
+            repo_root = $RepoRoot
+            config = $ConfigFile
+            error = "missing_config"
+            exit_code = 2
+        }
+        ($report | ConvertTo-Json -Depth 10) | Set-Content -LiteralPath $jsonPath -Encoding UTF8
+    }
+    exit 2
 }
 
 # Parse YAML config (simple parser)
@@ -407,7 +429,7 @@ if ($violations.Count -gt 0) {
 
     if ($DryRun) {
         Write-Warning "DRY RUN - Would fail with exit code 1"
-        exit 0
+        $exitCode = 0
     }
     else {
         Write-Error "TEST GATE FAILED - Required tests are missing"
@@ -417,10 +439,40 @@ if ($violations.Count -gt 0) {
         Write-Host "  2. Follow naming convention: <source>_test.py or <source>.test.ts"
         Write-Host "  3. Re-run test-gate"
         Write-Host ""
-        exit 1
+        $exitCode = 1
     }
 }
 else {
     Write-Success "TEST GATE PASSED - All required tests present"
-    exit 0
+    $exitCode = 0
 }
+
+if ($JsonOutput) {
+    $jsonPath = (Resolve-Path -LiteralPath $JsonOutput -ErrorAction SilentlyContinue)
+    if (-not $jsonPath) {
+        $jsonPath = $JsonOutput
+    } else {
+        $jsonPath = $jsonPath.Path
+    }
+    $dir = Split-Path -Parent $jsonPath
+    if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+
+    $report = [ordered]@{
+        tool = "test-gate"
+        repo_root = $RepoRoot
+        config = $ConfigFile
+        diff_base = $DiffBase
+        changed_files = $changedFiles
+        rules_count = $rules.Count
+        exclusions_count = $exclusions.Count
+        files_checked = $checked
+        files_skipped = $skipped
+        violations = $violations
+        exit_code = $exitCode
+        dry_run = [bool]$DryRun
+    }
+
+    ($report | ConvertTo-Json -Depth 50) | Set-Content -LiteralPath $jsonPath -Encoding UTF8
+}
+
+exit $exitCode

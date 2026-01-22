@@ -10,9 +10,7 @@ Een complete, deelbare workflow voor story-driven development met kwaliteitsgara
 
 | Component | Functie |
 |-----------|---------|
-| `/bmad-autopilot` | Genereer en voer BMAD stories uit vanuit een .md input |
-| `/cto-guard` | Valideer code/stories tegen CTO kwaliteitsregels |
-| `/ralph-loop` | Continue iteratie tot alle stories [DONE] |
+| `skills/` | Skill-pack (bmad-autopilot, bmad-bundle, plan-to-bmad, ralph-loop, cto-guard, test-guard, invariant-discovery, quick-fix, skill-creator) |
 | `bmad_autopilot_kit/` | Prompts, preflight scripts, templates |
 | `docs/CTO_RULES.md` | CTO review criteria (11 facetten) |
 
@@ -30,7 +28,7 @@ Een complete, deelbare workflow voor story-driven development met kwaliteitsgara
 
 1. **Kopieer skills naar global:**
    ```powershell
-   Copy-Item -Recurse .\.claude\skills\* $env:USERPROFILE\.claude\skills\
+   Copy-Item -Recurse .\skills\* $env:USERPROFILE\.claude\skills\
    ```
 
 2. **Kopieer kit naar je project:**
@@ -122,8 +120,14 @@ Input .md document
 ~/.claude/
 └── skills/
     ├── bmad-autopilot/
+    ├── bmad-bundle/
+    ├── plan-to-bmad/
+    ├── ralph-loop/
     ├── cto-guard/
-    └── ralph-loop/
+    ├── test-guard/
+    ├── invariant-discovery/
+    ├── quick-fix/
+    └── skill-creator/
 
 <jouw-project>/
 ├── bmad_autopilot_kit/

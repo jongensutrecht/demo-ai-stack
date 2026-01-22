@@ -110,22 +110,40 @@ function Parse-Verifications {
     $currentAc = ""
     $currentAcVerificationCount = 0
     $currentAcExpectedCount = 0
+    $currentAcLine = 0
+    $currentVerificationLine = 0
+    $currentExpectedLine = 0
 
     function Flush-CurrentAc {
         if (-not $currentAc) { return }
-        if ($null -ne $current) { throw "Missing Expected line after verification" }
-        if ($currentAcVerificationCount -eq 0) { throw "No verification commands found" }
-        if ($currentAcVerificationCount -gt 1) { throw "Multiple verification commands found" }
-        if ($currentAcExpectedCount -gt 1) { throw "Multiple Expected lines found" }
-        if ($currentAcExpectedCount -eq 0) { throw "Missing Expected line after verification" }
+        if ($null -ne $current) {
+            throw "Missing Expected line after verification (AC=$currentAc line=$currentVerificationLine)"
+        }
+        if ($currentAcVerificationCount -eq 0) {
+            throw "No verification commands found (AC=$currentAc line=$currentAcLine)"
+        }
+        if ($currentAcVerificationCount -gt 1) {
+            throw "Multiple verification commands found (AC=$currentAc)"
+        }
+        if ($currentAcExpectedCount -gt 1) {
+            throw "Multiple Expected lines found (AC=$currentAc)"
+        }
+        if ($currentAcExpectedCount -eq 0) {
+            throw "Missing Expected line after verification (AC=$currentAc line=$currentVerificationLine)"
+        }
+        $currentAcLine = 0
+        $currentVerificationLine = 0
+        $currentExpectedLine = 0
     }
 
     for ($k = $acStart; $k -lt $acEnd; $k++) {
         $line = $lines[$k]
+        $lineNo = $k + 1
 
         if ($line -match '^\s*-\s+\*\*AC(\d+)\b') {
             Flush-CurrentAc
             $currentAc = ("AC{0}" -f $Matches[1])
+            $currentAcLine = $lineNo
             $acCount += 1
             $currentAcVerificationCount = 0
             $currentAcExpectedCount = 0
@@ -135,65 +153,71 @@ function Parse-Verifications {
         if (-not $currentAc) { continue }
 
         if ($line -match '^\s*-\s+\*\*Verification \(repo-root\):\*\*\s+(.+?)\s*$') {
-            if ($null -ne $current) { throw "Missing Expected line after verification" }
-            if ($currentAcVerificationCount -ge 1) { throw "Multiple verification commands found" }
+            if ($null -ne $current) { throw "Missing Expected line after verification (AC=$currentAc line=$currentVerificationLine)" }
+            if ($currentAcVerificationCount -ge 1) { throw "Multiple verification commands found (AC=$currentAc lines=$currentVerificationLine,$lineNo)" }
             $cmd = $Matches[1].Trim()
             if ($cmd.StartsWith('`') -and $cmd.EndsWith('`') -and $cmd.Length -ge 2) { $cmd = $cmd.Substring(1, $cmd.Length - 2) }
             $current = [pscustomobject]@{ Cwd = $RepoRootPath; Command = $cmd; Expected = $null }
             $currentAcVerificationCount += 1
+            $currentVerificationLine = $lineNo
             continue
         }
         if ($line -match '^\s*-\s+Verification \(repo-root\):\s+(.+?)\s*$') {
-            if ($null -ne $current) { throw "Missing Expected line after verification" }
-            if ($currentAcVerificationCount -ge 1) { throw "Multiple verification commands found" }
+            if ($null -ne $current) { throw "Missing Expected line after verification (AC=$currentAc line=$currentVerificationLine)" }
+            if ($currentAcVerificationCount -ge 1) { throw "Multiple verification commands found (AC=$currentAc lines=$currentVerificationLine,$lineNo)" }
             $cmd = $Matches[1].Trim()
             if ($cmd.StartsWith('`') -and $cmd.EndsWith('`') -and $cmd.Length -ge 2) { $cmd = $cmd.Substring(1, $cmd.Length - 2) }
             $current = [pscustomobject]@{ Cwd = $RepoRootPath; Command = $cmd; Expected = $null }
             $currentAcVerificationCount += 1
+            $currentVerificationLine = $lineNo
             continue
         }
         if ($line -match '^\s*-\s+\*\*Verification \(cwd=([^)]+)\):\*\*\s+(.+?)\s*$') {
-            if ($null -ne $current) { throw "Missing Expected line after verification" }
-            if ($currentAcVerificationCount -ge 1) { throw "Multiple verification commands found" }
+            if ($null -ne $current) { throw "Missing Expected line after verification (AC=$currentAc line=$currentVerificationLine)" }
+            if ($currentAcVerificationCount -ge 1) { throw "Multiple verification commands found (AC=$currentAc lines=$currentVerificationLine,$lineNo)" }
             $cwdRaw = $Matches[1].Trim()
             $cwd = if ([System.IO.Path]::IsPathRooted($cwdRaw)) { $cwdRaw } else { Join-Path $RepoRootPath $cwdRaw }
             $cmd = $Matches[2].Trim()
             if ($cmd.StartsWith('`') -and $cmd.EndsWith('`') -and $cmd.Length -ge 2) { $cmd = $cmd.Substring(1, $cmd.Length - 2) }
             $current = [pscustomobject]@{ Cwd = $cwd; Command = $cmd; Expected = $null }
             $currentAcVerificationCount += 1
+            $currentVerificationLine = $lineNo
             continue
         }
         if ($line -match '^\s*-\s+Verification \(cwd=([^)]+)\):\s+(.+?)\s*$') {
-            if ($null -ne $current) { throw "Missing Expected line after verification" }
-            if ($currentAcVerificationCount -ge 1) { throw "Multiple verification commands found" }
+            if ($null -ne $current) { throw "Missing Expected line after verification (AC=$currentAc line=$currentVerificationLine)" }
+            if ($currentAcVerificationCount -ge 1) { throw "Multiple verification commands found (AC=$currentAc lines=$currentVerificationLine,$lineNo)" }
             $cwdRaw = $Matches[1].Trim()
             $cwd = if ([System.IO.Path]::IsPathRooted($cwdRaw)) { $cwdRaw } else { Join-Path $RepoRootPath $cwdRaw }
             $cmd = $Matches[2].Trim()
             if ($cmd.StartsWith('`') -and $cmd.EndsWith('`') -and $cmd.Length -ge 2) { $cmd = $cmd.Substring(1, $cmd.Length - 2) }
             $current = [pscustomobject]@{ Cwd = $cwd; Command = $cmd; Expected = $null }
             $currentAcVerificationCount += 1
+            $currentVerificationLine = $lineNo
             continue
         }
         if ($line -match '^\s*-\s+\*\*Expected:\*\*\s+(.+?)\s*$') {
-            if ($null -eq $current) { throw "Expected line without prior verification" }
-            if ($currentAcExpectedCount -ge 1) { throw "Multiple Expected lines found" }
+            if ($null -eq $current) { throw "Expected line without prior verification (line $lineNo)" }
+            if ($currentAcExpectedCount -ge 1) { throw "Multiple Expected lines found (AC=$currentAc lines=$currentExpectedLine,$lineNo)" }
             $exp = $Matches[1].Trim()
             if ($exp.StartsWith('`') -and $exp.EndsWith('`') -and $exp.Length -ge 2) { $exp = $exp.Substring(1, $exp.Length - 2) }
             $current.Expected = $exp
             $verifications += $current
             $current = $null
             $currentAcExpectedCount += 1
+            $currentExpectedLine = $lineNo
             continue
         }
         if ($line -match '^\s*-\s+Expected:\s+(.+?)\s*$') {
-            if ($null -eq $current) { throw "Expected line without prior verification" }
-            if ($currentAcExpectedCount -ge 1) { throw "Multiple Expected lines found" }
+            if ($null -eq $current) { throw "Expected line without prior verification (line $lineNo)" }
+            if ($currentAcExpectedCount -ge 1) { throw "Multiple Expected lines found (AC=$currentAc lines=$currentExpectedLine,$lineNo)" }
             $exp = $Matches[1].Trim()
             if ($exp.StartsWith('`') -and $exp.EndsWith('`') -and $exp.Length -ge 2) { $exp = $exp.Substring(1, $exp.Length - 2) }
             $current.Expected = $exp
             $verifications += $current
             $current = $null
             $currentAcExpectedCount += 1
+            $currentExpectedLine = $lineNo
             continue
         }
     }
@@ -255,17 +279,17 @@ function Check-RequiredHeadings {
 
     $txt = Get-Content -LiteralPath $StoryFilePath -Raw
     $required = @(
-        '^##\s+Context\s*$',
-        '^##\s+Story\s*$',
-        '^##\s+Acceptance Criteria\s*$',
-        '^##\s+Tasks\s*/\s*Subtasks\s*$',
-        '^##\s+Dev Notes\s*$',
-        '^##\s+Dev Agent Record\s*$',
-        '^##\s+Status\s*$'
+        @{ Name = "Context"; Regex = '^##\s+Context\s*$' },
+        @{ Name = "Story"; Regex = '^##\s+Story\s*$' },
+        @{ Name = "Acceptance Criteria"; Regex = '^##\s+Acceptance Criteria\s*$' },
+        @{ Name = "Tasks/Subtasks"; Regex = '^##\s+Tasks\s*/\s*Subtasks\s*$' },
+        @{ Name = "Dev Notes"; Regex = '^##\s+Dev Notes\s*$' },
+        @{ Name = "Dev Agent Record"; Regex = '^##\s+Dev Agent Record\s*$' },
+        @{ Name = "Status"; Regex = '^##\s+Status\s*$' }
     )
     $missing = @()
-    foreach ($re in $required) {
-        if (-not ([regex]::IsMatch($txt, "(?m)$re"))) { $missing += $re }
+    foreach ($req in $required) {
+        if (-not ([regex]::IsMatch($txt, "(?m)$($req.Regex)"))) { $missing += $req.Name }
     }
     return $missing
 }
@@ -351,7 +375,7 @@ foreach ($id in $orderedIds) {
     try {
         $missingHeadings = @(Check-RequiredHeadings -StoryFilePath $file)
         if ($missingHeadings.Count -gt 0) {
-            $rowWarnings += ("Missing required headings (regex): {0}" -f ($missingHeadings -join " | "))
+            $rowWarnings += ("Missing required headings: {0}" -f ($missingHeadings -join " | "))
         }
     } catch {
         $rowWarnings += "Heading check failed: $($_.Exception.Message)"
