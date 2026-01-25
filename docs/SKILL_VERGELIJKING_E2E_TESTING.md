@@ -1,175 +1,205 @@
 # Skill Vergelijking: E2E Testing
 
-## Twee Benaderingen
+> Lars (e2e-validate) vs Alexander (test-guard-driver-app)
 
-| | Lars (e2e-validate) | Alexander (test-guard-driver-app) |
-|---|---|---|
-| **Regels** | 507 | 224 |
-| **Focus** | Alles-in-één QA proces | Specifiek: discovery + scaffolds |
-| **Mocks** | Niet expliciet verboden | **VERBODEN** |
-| **Fallbacks** | Toegestaan | **VERBODEN** |
-| **Coverage** | Geen minimum | **100% vereist** |
-| **Buttons** | Niet specifiek | **Alle buttons getest** |
+## TL;DR
+
+| Aspect | Lars | Alexander |
+|--------|------|-----------|
+| **Anti-mock** | ✅ Ja | ✅ Ja |
+| **Coverage** | 67-87% OK | **100% of blokkeer** |
+| **Skip optie** | ✅ Toegestaan | ❌ Niet mogelijk |
+| **Button testing** | Impliciet | **Expliciet verplicht** |
+| **Fallbacks** | Niet genoemd | **Verboden** |
+| **Scope** | Generiek | Driver-app specifiek |
+
+**Conclusie**: Beide skills zijn anti-mock. Het verschil zit in **coverage eisen** en **skip mogelijkheden**.
 
 ---
 
-## Lars: e2e-validate
+## Gedeelde Principes
 
-### Wat het doet
-Een uitgebreide "Senior QA Engineer" persona die het volledige testproces doorloopt:
-1. Project detectie
-2. Requirement extraction
-3. Test plan generatie
-4. Test execution
-5. Result reporting
-6. Continuous validation
+Beide skills zijn het eens over:
 
-### Problemen
+### Anti-Mock
+**Lars:**
+```
+❌ VERBODEN:
+- Mock data gebruiken als echte data beschikbaar is
+```
 
-**1. Te veel verantwoordelijkheden**
-De skill probeert tegelijk:
-- Requirements analyst te zijn
-- Test planner te zijn
-- Test executor te zijn
-- Reporter te zijn
-- Debugger te zijn
+**Alexander:**
+```
+2. **GEEN MOCKS** - Test tegen echte services, echte API's, echte data
+```
 
-Dit leidt tot een skill die 507 regels lang is maar geen enkele taak uitstekend doet.
+### Anti-Fake Data
+**Lars:**
+```
+NOOIT:
+- Hardcoded test values (tenzij uit spec)
+- "Example" data
+- Verzonnen user credentials
+- Fictieve scenarios
+```
 
-**2. Geen harde grenzen**
+**Alexander:**
+```
+6. **Geen hallucinatie** - Als iets niet bestaat, niet testen
+```
+
+### Evidence-Based Testing
+**Lars:**
+```
+Voor ELKE test assertion:
+1. BRON: Waar komt de expected value vandaan?
+2. LOCATIE: Welk bestand/regel/endpoint?
+3. VERIFICATIE: Hoe weet je dat dit correct is?
+```
+
+**Alexander:**
+```
+**Test status:** ✅ Tested / ❌ Needs test
+**Locatie:** [file:line]
+```
+
+---
+
+## Waar Ze Verschillen
+
+### 1. Coverage Eisen
+
+**Lars accepteert minder dan 100%:**
+```
+📊 Coverage Report:
+✅ Tested: 6/12 invariants
+❌ Needs test: 5/12
+⚠️ Needs verification: 1/12
+
+TOTAAL: 4/6 PASSED (67%)
+```
+
+**Alexander blokkeert bij < 100%:**
+```
+Als coverage < 100%: **BLOKKEER** en toon wat mist.
+
+TOTAAL: 100% COVERAGE ✅
+```
+
+### 2. Skip Mogelijkheid
+
+**Lars staat SKIP toe:**
 ```
 ⚠️ SKIP │ OAuth flow
         │ Reden: Geen test credentials beschikbaar
+        │ Actie: User moet OAuth tokens configureren
+
+⚠️ SKIP │ Route planning (blocked by API)
 ```
-Dit is een escape hatch. De skill accepteert dat dingen NIET getest worden.
 
-**3. Dramatische framing**
+**Alexander heeft geen skip:**
+Er is simpelweg geen `⚠️ SKIP` status. Alleen `✅ Tested` of `❌ Needs test`.
+
+### 3. Button Testing
+
+**Lars:** Buttons zijn onderdeel van "UI tests" maar niet expliciet geïnventariseerd.
+
+**Alexander:** Expliciete button discovery en inventory:
 ```
-Je werkt bij een Fortune 500 bedrijf waar bugs = ontslagen.
+2. BUTTON INVENTORY → alle buttons uit UI
+   - Scan componenten voor <button>, <Button>, onClick handlers
+   - Maak lijst: button tekst/id → verwachte actie
+   - Elke button = 1 E2E test
+
+Output: docs/BUTTON-INVENTORY.md
 ```
-Dit voegt niets toe aan de kwaliteit van de tests.
 
-**4. Mock-vriendelijk**
-De skill zegt nergens expliciet dat mocks verboden zijn. Dit opent de deur naar:
-- Fake data
-- Gesimuleerde responses
-- Tests die slagen maar niets valideren
+### 4. Fallback Handling
 
----
+**Lars:** Niet expliciet genoemd. Impliceert dat graceful degradation OK is als het gedocumenteerd wordt.
 
-## Alexander: test-guard-driver-app
-
-### Wat het doet
-Gefocuste skill met één doel: ontdek wat getest moet worden en genereer scaffolds.
-
-### Waarom het werkt
-
-**1. Absolute regels zonder uitzonderingen**
-```markdown
-1. **100% COVERAGE** - Elke invariant, elke button, elke flow wordt getest
-2. **GEEN MOCKS** - Test tegen echte services, echte API's, echte data
+**Alexander:** Expliciet verboden:
+```
 3. **GEEN FALLBACKS** - Test faalt = bug, geen "graceful degradation" excuses
-4. **ALLE BUTTONS** - Elke button in de UI krijgt een E2E test
 ```
 
-Er is geen "skip" optie. Er is geen "later doen". Het werkt of het werkt niet.
+### 5. Scope & Complexiteit
 
-**2. Blokkerende coverage check**
-```
-Als coverage < 100%: **BLOKKEER** en toon wat mist.
-```
+**Lars (507 regels):**
+- 6 fases (detectie → extraction → planning → execution → reporting → continuous)
+- Prioriteiten systeem (P0-P3)
+- Requirements matrix generatie
+- Flaky test detectie
+- Meerdere output files (test-requirements.md, test-plan.md, test-reports/)
 
-De skill stopt letterlijk als niet alles getest is. Geen workarounds.
-
-**3. Button inventory**
-```bash
-grep -r "<button\|<Button\|onClick=" components/ app/ pages/
-```
-
-Elke button wordt gevonden en krijgt een test. Geen UI element blijft ongetest.
-
-**4. Concrete output**
-```
-docs/INVARIANTS.md      → Wat mag NOOIT gebeuren
-docs/BUTTON-INVENTORY.md → Alle buttons met test status
-e2e/*.spec.ts           → Playwright tests
-```
-
-Je weet exact wat je krijgt.
+**Alexander (224 regels):**
+- 5 stappen (discover → buttons → invariants → tests → coverage check)
+- Geen prioriteiten (alles is P0)
+- Gefocuste output (INVARIANTS.md, BUTTON-INVENTORY.md, e2e/*.spec.ts)
 
 ---
 
-## Waarom Alexander's Benadering Wint
+## Wanneer Welke Skill?
 
-### 1. Mocks zijn leugens
+### Gebruik Alexander (test-guard-driver-app) als:
 
-Mocks testen je mock, niet je systeem.
+- Je **100% coverage** wilt afdwingen
+- Je **geen excuses** wilt voor ontbrekende tests
+- Je werkt aan **driver-app-gps** specifiek
+- Je **alle buttons** expliciet wilt testen
+- Je **fallbacks als bugs** wilt behandelen
+- Je een **kortere, directere** workflow wilt
 
-```typescript
-// LARS APPROACH - Mock
-await page.route('**/api.telegram.org/**', async (route) => {
-  await route.fulfill({ status: 200, body: JSON.stringify({ ok: true }) });
-});
-// Test slaagt! Maar werkt Telegram echt? Niemand weet het.
+### Gebruik Lars (e2e-validate) als:
 
-// ALEXANDER APPROACH - Echte call
-// Test faalt als Telegram niet werkt. Goed. Dan weet je het.
-```
-
-### 2. Fallbacks verbergen bugs
-
-```
-// LARS: "Graceful degradation"
-if (telegramFails) {
-  return fallbackBehavior(); // Bug verborgen achter fallback
-}
-
-// ALEXANDER: Geen fallback
-// Telegram faalt = test faalt = bug = fix it
-```
-
-### 3. 100% coverage dwingt kwaliteit af
-
-Met Lars kun je 67% coverage hebben en "klaar" zijn.
-Met Alexander moet alles werken. Geen uitzonderingen.
-
-### 4. Minder is meer
-
-224 regels die precies doen wat nodig is > 507 regels die alles half doen.
+- Je **flexibiliteit** nodig hebt in coverage
+- Je met **beperkte resources** werkt (skip low-priority tests)
+- Je een **requirements matrix** nodig hebt voor stakeholders
+- Je **flaky tests** wilt detecteren
+- Je op **meerdere projecten** dezelfde skill wilt gebruiken
+- Je **prioriteiten** wilt stellen (P0 vs P3)
 
 ---
 
-## Praktijkvoorbeeld
+## Voor Driver-App-GPS: Alexander Wint
 
-**Scenario:** Login button werkt niet op mobile
+De driver-app-gps heeft specifieke eisen:
 
-**Lars approach:**
-1. Test draait met mocks
-2. Mock zegt "200 OK"
-3. Test slaagt
-4. Bug in productie
-5. Gebruiker kan niet inloggen
-6. Support ticket
+| Eis | Lars | Alexander |
+|-----|------|-----------|
+| GPS tracking moet ALTIJD werken | Skip mogelijk | ✅ Geen skip |
+| Alle shift buttons moeten werken | Impliciet | ✅ Button inventory |
+| Geen fallback naar fake locatie | Niet expliciet | ✅ Fallbacks verboden |
+| 100% van kritieke flows getest | 67% OK | ✅ 100% verplicht |
 
-**Alexander approach:**
-1. Button inventory vindt login button
-2. Test draait tegen echte service
-3. Test faalt op mobile viewport
-4. Bug gevonden vóór productie
-5. Fix toegepast
-6. Geen support ticket
+**Alexander's skill is gebouwd voor driver-app-gps. Lars's skill is gebouwd voor elk project.**
 
 ---
 
-## Conclusie
+## Samenvatting
 
-| Criterium | Lars | Alexander |
-|-----------|------|-----------|
-| Vindt echte bugs | ❌ Mocks verbergen ze | ✅ Geen mocks |
-| Dwingt kwaliteit af | ❌ Skips toegestaan | ✅ 100% of blokkeer |
-| Simpel te gebruiken | ❌ 507 regels lezen | ✅ `/test-guard-driver-app` |
-| Voorspelbare output | ❌ Varieert per run | ✅ Altijd dezelfde files |
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    BEIDE SKILLS                             │
+│  ✅ Anti-mock                                               │
+│  ✅ Anti-fake data                                          │
+│  ✅ Evidence-based testing                                  │
+│  ✅ Playwright voor E2E                                     │
+└─────────────────────────────────────────────────────────────┘
 
-**Alexander's skill wint omdat het geen excuses accepteert.**
+┌─────────────────────────┐    ┌─────────────────────────────┐
+│      LARS               │    │      ALEXANDER              │
+│                         │    │                             │
+│  Coverage: flexibel     │    │  Coverage: 100% verplicht   │
+│  Skip: toegestaan       │    │  Skip: niet mogelijk        │
+│  Buttons: impliciet     │    │  Buttons: expliciet         │
+│  Fallbacks: niet genoemd│    │  Fallbacks: verboden        │
+│  Scope: generiek        │    │  Scope: driver-app-gps      │
+│  Regels: 507            │    │  Regels: 224                │
+└─────────────────────────┘    └─────────────────────────────┘
+```
 
-De beste test is niet de test die slaagt. De beste test is de test die faalt wanneer er een bug is.
+**De keuze is niet "goed vs slecht" maar "flexibel vs strict".**
+
+Voor driver-app-gps waar GPS en shifts MOETEN werken: **Alexander**.
+Voor een generiek project met resource constraints: **Lars**.
