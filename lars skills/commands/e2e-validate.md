@@ -20,6 +20,7 @@
 4. **Elke test heeft bewijs** - Bron + locatie + verificatie
 5. **Max 300 regels per bestand** - Meer = FAIL, split op
 6. **Max 20 functies per bestand** - Meer = FAIL, split op
+7. **LLM-leesbare code** - Zie `e2e-validate/llm-readable.md`
 
 ---
 
