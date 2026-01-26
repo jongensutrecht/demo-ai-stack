@@ -1,6 +1,39 @@
 # Code Quality Module
 
-**Doel:** Vind dead code, duplicates, memory leaks.
+**Doel:** Vind dead code, duplicates, memory leaks, te grote bestanden.
+
+---
+
+## 0. File Size Check (HARDE REGEL)
+
+**Limiet:** Max 300 regels, max 20 functies per bestand.
+
+```bash
+# Tel regels per bestand
+find src/ api/ lib/ -name "*.ts" -o -name "*.tsx" | xargs wc -l | sort -rn
+
+# Tel functies per bestand
+grep -c "function\|const.*=.*=>" src/**/*.ts
+```
+
+**Check:**
+```
+VOOR ELK bestand:
+- Regels > 300? → ❌ FAIL
+- Functies > 20? → ❌ FAIL
+```
+
+**Rapport:**
+```
+FILE SIZE CHECK
+─────────────────────────────────────────
+❌ src/api/gps-sync.ts: 342 regels (max 300)
+❌ lib/sheets.ts: 25 functies (max 20)
+✅ Overige bestanden: OK
+─────────────────────────────────────────
+Status: ❌ FAIL - 2 bestanden te groot
+Actie: Split bestanden op VOORDAT je merged
+```
 
 ---
 
@@ -84,8 +117,16 @@ assert(growth < 20, `Memory grew ${growth}%`)
 ╔═══════════════════════════════════════════════════════════════╗
 ║                  CODE QUALITY                                 ║
 ╠═══════════════════════════════════════════════════════════════╣
-║ Dead code:      0 files     ✅                                ║
-║ Duplicates:     2 blocks    ⚠️ (15 lines, consider refactor)  ║
-║ Memory leak:    +3%         ✅ (<20% threshold)               ║
+║ File size:      0 violations ✅ (max 300 lines, 20 functions) ║
+║ Dead code:      0 files      ✅                               ║
+║ Duplicates:     2 blocks     ⚠️ (15 lines, consider refactor) ║
+║ Memory leak:    +3%          ✅ (<20% threshold)              ║
 ╚═══════════════════════════════════════════════════════════════╝
+```
+
+## File Size = BLOCKER
+
+```
+File size violation = ❌ FAIL
+Geen merge tot bestanden gesplit zijn.
 ```
