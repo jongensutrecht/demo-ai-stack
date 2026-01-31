@@ -10,8 +10,8 @@ Doel: je plakt deze map in de root van een repo, en je plakt daarna alleen `UITV
 
 ### Optie B: Plan eerst (geen BMAD input)
 1) Kopieer deze map naar de repo-root als: `bmad_autopilot_kit_codex/`
-2) Open `bmad_autopilot_kit_codex/PLAN_TO_BMAD_PROMPT_codex.md`, vul REQUIREMENT in, plak in terminal
-3) Codex analyseert codebase en genereert `bmad_input/<naam>.md`
+2) Open `bmad_autopilot_kit_codex/PLAN_TO_BMAD_PROMPT_codex.md`, vul REQUIREMENT of PLAN_PATH/PLAN_TEXT in, plak in terminal
+3) Codex doet onderzoek of plan-transformatie en genereert `bmad_input/<naam>.md`
 4) Gebruik output als `BMAD_INPUT_FILE` voor UITVOER_PROMPT
 
 ## Contract (single source of truth)

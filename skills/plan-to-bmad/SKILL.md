@@ -39,7 +39,7 @@ Transformeert bestaand plan naar BMAD input.
         ↓
 2. ONTWERP
    - Definieer P0 (must-have) features
-   - Definieer P1 (should-have) features
+   - Definieer P1/P2/P3 (nice-to-have/later) features
    - Identificeer risico's (Security, Data Loss, Architecture)
         ↓
 3. VALIDEER
@@ -48,6 +48,7 @@ Transformeert bestaand plan naar BMAD input.
         ↓
 4. OUTPUT
    - Schrijf bmad_input/<naam>.md
+   - Schrijf bmad_input/<naam>.json
    - Klaar voor /bmad-bundle
 ```
 
@@ -60,6 +61,8 @@ Transformeert bestaand plan naar BMAD input.
 3. **P1 risico check**: Security/Data Loss/Architecture risico's identificeren
 4. **Tech stack detectie**: uit repo, vraag alleen bij ambiguïteit
 5. **File limits**: constraints bevatten max 300 regels, max 20 functies
+6. **Schrijf md + json**: output bestaat uit `bmad_input/<naam>.md` en `bmad_input/<naam>.json`
+7. **P1/P2/P3 verplicht**: P1, P2 en P3 secties moeten aanwezig zijn (ook als `None`)
 
 ---
 
@@ -92,7 +95,12 @@ Check voor elke feature:
 
 ## Output Format
 
-Schrijf naar `bmad_input/<naam>.md`:
+Gebruik als basis-template: `knowledge/bmad-template.md`.
+
+Schrijf naar:
+
+- `bmad_input/<naam>.md`
+- `bmad_input/<naam>.json`
 
 ```markdown
 # BMAD Input — [NAAM]
