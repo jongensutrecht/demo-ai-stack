@@ -8,7 +8,16 @@ Onderzoek een issue/requirement en genereer direct BMAD-ready input.
 
 ---
 
-## Input
+## Twee Modi
+
+- Modus 1: Direct onderzoek (REQUIREMENT)
+- Modus 2: Vanuit bestaand plan (PLAN_PATH of PLAN_TEXT)
+
+---
+
+## Input (kies 1 modus)
+
+### Modus 1 - Direct onderzoek
 
 **REQUIREMENT:** (VERPLICHT - vul in voor je plakt)
 ```
@@ -17,9 +26,42 @@ Onderzoek een issue/requirement en genereer direct BMAD-ready input.
 
 ---
 
+### Modus 2 - Vanuit bestaand plan
+
+**PLAN_PATH:** (optioneel, voorkeur)
+```
+/pad/naar/plan.md
+```
+
+**PLAN_TEXT:** (optioneel)
+```
+[Plak hier het plan als tekst]
+```
+
+Gebruik PLAN_PATH als die is ingevuld; anders PLAN_TEXT. Als beide leeg zijn: stop en vraag om input.
+
+---
+
 ## Workflow
 
-### STAP 1 - Onderzoek Codebase
+### Modus 1 - Direct onderzoek
+
+1. ONDERZOEK (codebase) - zie Onderzoek checklist
+2. ONTWERP - definieer P0/P1, identificeer P1 risico's
+3. VALIDEER - elke P0 heeft verificatie command + expected; voeg invarianten toe
+4. OUTPUT - schrijf bmad_input/<naam>.md
+
+### Modus 2 - Vanuit bestaand plan
+
+1. LEES PLAN - cat PLAN_PATH of gebruik PLAN_TEXT; extraheer features/requirements/scope
+2. ONDERZOEK CODEBASE - bevestig relevante files/patterns met Glob/Grep
+3. DETECTEER STACK - uit repo (package.json, pyproject.toml, go.mod, Cargo.toml)
+4. VALIDEER - elke P0 heeft verificatie command + expected; voeg invarianten toe
+5. OUTPUT - schrijf bmad_input/<naam>.md
+
+---
+
+## Onderzoek checklist
 
 Beantwoord deze vragen met bewijs:
 
@@ -32,7 +74,7 @@ Beantwoord deze vragen met bewijs:
 | Raakt dit data/database? | Check schema, migrations | [ja/nee + bewijs] |
 | Conflicteert dit met CTO_RULES? | Lees `docs/CTO_RULES.md` | [ja/nee + welke regel] |
 
-### STAP 2 - Identificeer Risico's
+## P1 Risico Identificatie
 
 Check voor elke feature:
 
@@ -42,7 +84,9 @@ Check voor elke feature:
 | **Data Loss** | DELETE, UPDATE, migration | Voeg safeguard AC toe |
 | **Architecture** | Nieuw pattern, grote refactor | Documenteer in constraints |
 
-### STAP 3 - Definieer Features
+---
+
+## Features
 
 **P0 (Must-have):** Features die MOETEN werken
 - Elke P0 heeft een verificatie command + expected output
@@ -50,7 +94,9 @@ Check voor elke feature:
 **P1 (Should-have):** Nice-to-haves
 - Alleen als tijd over
 
-### STAP 4 - Genereer BMAD Input
+---
+
+## Output Format
 
 Schrijf naar `bmad_input/<naam>.md`:
 
@@ -126,6 +172,6 @@ Schrijf naar `bmad_input/<naam>.md`:
 ## Gebruik
 
 1. Plak deze prompt in Codex terminal
-2. Vul REQUIREMENT in
-3. Codex doet onderzoek + genereert BMAD input
+2. Vul REQUIREMENT of PLAN_PATH/PLAN_TEXT in
+3. Codex doet onderzoek of plan-transformatie en genereert BMAD input
 4. Gebruik output als `BMAD_INPUT_FILE` voor UITVOER_PROMPT
