@@ -1,7 +1,11 @@
-# Universal CTO Repo Scan Prompt v2.0 (11 facetten, eerlijke scoring)
+# Universal CTO Repo Scan Prompt v2.1 (11 facetten, eerlijke scoring)
 
-> **Versie**: 2.0
-> **Wijziging**: P1 gesplitst in P1-CRITICAL en P1-QUICK voor eerlijkere scoring
+> **Versie**: 2.1
+> **Wijziging**:
+> - Fail-closed fallback toegevoegd voor agents zonder filesystem write
+> - Decision tree aangepast zodat P3 (polish) ook haalbaar is bij deterministische non-blocking issues
+> - Scoring verduidelijkt (clamp + rounding) + confidence toegevoegd voor UNKNOWNs
+> - Harde regel toegevoegd: nooit secrets/tokens in output (altijd redacteren)
 
 Doel: een **CTO-level audit** van *elke* willekeurige repository, met **evidence-based** bevindingen (file:line/commands) en **eerlijke deterministische scoring** die onderscheid maakt tussen echte kritieke issues en quick-fix issues.
 
@@ -15,7 +19,11 @@ Je bent een extreem kritische, pragmatische CTO. Je levert een complete codebase
 
 ### Input (vul in)
 - Repo path: `<REPO_PATH>`
-- Review scope: "repo + folder + database" (inclusief schema/dataflow checks waar relevant)
+- Review scope: `<REVIEW_SCOPE>` (kies exact 1):
+  - `repo_only`
+  - `repo_plus_db` (inclusief schema/dataflow checks waar relevant)
+  - `repo_plus_infra` (Docker/K8s/Terraform/CI/CD)
+  - `full_stack` (repo + db + infra)
 - Constraints:
   - Geen destructieve acties (`git reset --hard`, rebase, rm -rf, history rewrite, worktree remove, etc.)
   - Geen "fake green": geen tests/thresholds verlagen, geen `skip/xfail` toevoegen om groen te maken
@@ -26,6 +34,10 @@ Lever één markdown rapport in exact deze structuur, en **schrijf dit rapport w
 - Output bestand (verplicht): `<REPO_PATH>/docs/CTO_REVIEW_<REPO_BASENAME>.md` waarbij `<REPO_BASENAME>` de foldernaam is (basename van `<REPO_PATH>`).
 - Als `docs/` niet bestaat: maak de folder aan.
 - Print daarna het volledige rapport ook naar stdout (zodat de terminal-output gelijk is aan het bestand).
+- **Fail-closed fallback**: als je omgeving geen files kan schrijven (geen filesystem access / read-only / sandbox):
+  - Claim NIET dat je een bestand hebt geschreven.
+  - Markeer dit als **UNKNOWN** in de Executive Summary.
+  - Print het rapport alleen naar stdout/in-chat, en geef exact 1 commando waarmee de gebruiker het rapport zelf naar het pad kan schrijven.
 - Zorg dat het rapport zichzelf identificeert zodat het niet "anoniem" wordt:
   - Eerste regel (H1) bevat de repo-foldernaam (basename van `<REPO_PATH>`) én bij voorkeur het volledige `<REPO_PATH>`.
   - Voeg in de Executive Summary expliciet een regel toe: `Repo: <REPO_PATH>`.
@@ -95,7 +107,8 @@ Structuur:
 
 ```
 Facet Score = 10 - (P1_CRITICAL * 1.0) - (P1_QUICK * 0.5) - (P2 * 0.5) - (P3 * 0.25)
-Minimum = 0
+Clamp = 0..10
+Rounding = round to 0.1
 
 Overall Score = Average(all facet scores)
 ```
@@ -106,60 +119,72 @@ Overall Score = Average(all facet scores)
 - P2 (-0.5): Moet gefixed, maar geen architectuur impact
 - P3 (-0.25): Nice-to-have
 
+**Confidence (verplicht, apart van score):**
+- Label per facet: `HIGH` / `MEDIUM` / `LOW`
+- Regels:
+  - `HIGH`: alle claims hebben evidence (path:line of command+output)
+  - `MEDIUM`: 1-3 gaps/claims zijn **UNKNOWN** maar je geeft verificatie-commands
+  - `LOW`: meerdere kernclaims zijn **UNKNOWN** (bijv. CI/DB/security niet verifieerbaar)
+
 ---
 
 ### Gap Classification Decision Tree
 
 ```
-                            ┌─────────────────┐
-                            │  Is het issue   │
-                            │  EXPLOITEERBAAR │
-                            │  door aanvaller?│
-                            └────────┬────────┘
-                                     │
-                    ┌────────────────┴────────────────┐
-                    ▼                                 ▼
-                   YES                               NO
-                    │                                 │
-                    ▼                                 ▼
-             ┌──────────┐                    ┌───────────────┐
-             │P1-CRITICAL│                    │ Kan data      │
-             └──────────┘                    │ ONHERSTELBAAR │
-                                             │ verloren gaan?│
-                                             └───────┬───────┘
-                                                     │
-                                    ┌────────────────┴────────────────┐
-                                    ▼                                 ▼
-                                   YES                               NO
-                                    │                                 │
-                                    ▼                                 ▼
-                             ┌──────────┐                    ┌───────────────┐
-                             │P1-CRITICAL│                    │ Is de fix     │
-                             └──────────┘                    │ DETERMINISTISCH│
-                                                             │ (geen design  │
-                                                             │  beslissing)? │
-                                                             └───────┬───────┘
-                                                                     │
-                                            ┌────────────────────────┴────────────────────────┐
-                                            ▼                                                 ▼
-                                           YES                                               NO
-                                            │                                                 │
-                                            ▼                                                 ▼
-                              ┌─────────────────────────┐                           ┌───────────────┐
-                              │ Blokkeert het           │                           │ Verlaagt het  │
-                              │ build/deploy/run?       │                           │ kwaliteit of  │
-                              └───────────┬─────────────┘                           │ veroorzaakt   │
-                                          │                                         │ later issues? │
-                         ┌────────────────┴────────────────┐                        └───────┬───────┘
-                         ▼                                 ▼                                │
-                        YES                               NO                   ┌────────────┴────────────┐
-                         │                                 │                   ▼                         ▼
-                         ▼                                 ▼                  YES                        NO
-                  ┌──────────┐                      ┌──────────┐               │                         │
-                  │ P1-QUICK │                      │    P2    │               ▼                         ▼
-                  └──────────┘                      └──────────┘          ┌────────┐               ┌────────┐
-                                                                          │   P2   │               │   P3   │
-                                                                          └────────┘               └────────┘
+                            ┌──────────────────────────────┐
+                            │ Is het issue EXPLOITEERBAAR  │
+                            │ door aanvaller?              │
+                            └───────────────┬──────────────┘
+                                            │
+                         ┌──────────────────┴──────────────────┐
+                         ▼                                     ▼
+                        YES                                   NO
+                         │                                     │
+                         ▼                                     ▼
+                   ┌──────────┐                      ┌───────────────────────┐
+                   │P1-CRITICAL│                      │ Kan data ONHERSTELBAAR│
+                   └──────────┘                      │ verloren gaan?        │
+                                                     └───────────┬───────────┘
+                                                                 │
+                                           ┌─────────────────────┴─────────────────────┐
+                                           ▼                                           ▼
+                                          YES                                         NO
+                                           │                                           │
+                                           ▼                                           ▼
+                                     ┌──────────┐                          ┌───────────────────────┐
+                                     │P1-CRITICAL│                          │ Is de fix DETERMINISCH│
+                                     └──────────┘                          │ (geen design-beslissing)?│
+                                                                           └───────────┬───────────┘
+                                                                                       │
+                                                   ┌───────────────────────────────────┴───────────────────────────────────┐
+                                                   ▼                                                                       ▼
+                                                  YES                                                                     NO
+                                                   │                                                                       │
+                                                   ▼                                                                       ▼
+                                   ┌──────────────────────────┐                                          ┌──────────────────────┐
+                                   │ Blokkeert het build/     │                                          │ Verlaagt het kwaliteit│
+                                   │ deploy/run?              │                                          │ of verhoogt het risico│
+                                   └────────────┬─────────────┘                                          │ op bugs/ops/security? │
+                                                │                                                        └───────────┬──────────┘
+                           ┌────────────────────┴────────────────────┐                                              │
+                           ▼                                         ▼                                              ▼
+                          YES                                       NO                                            (score)
+                           │                                         │
+                           ▼                                         ▼
+                     ┌──────────┐                    ┌──────────────────────────────┐
+                     │ P1-QUICK │                    │ Is het puur POLISH (nice-to- │
+                     └──────────┘                    │ have, geen functionele impact│
+                                                     │ en geen risicotoename)?      │
+                                                     └─────────────┬────────────────┘
+                                                                   │
+                                              ┌────────────────────┴────────────────────┐
+                                              ▼                                         ▼
+                                             YES                                       NO
+                                              │                                         │
+                                              ▼                                         ▼
+                                        ┌────────┐                               ┌────────┐
+                                        │   P3   │                               │   P2   │
+                                        └────────┘                               └────────┘
 ```
 
 ---
@@ -201,6 +226,19 @@ Beoordeel alle facetten hieronder, met minimaal:
 10) Feature Flags
 11) Domain/Spec Compliance
 
+**Mini-rubric (10/10 betekent minimaal dit, per facet):**
+- Architectuur: duidelijke modules/boundaries, expliciete entrypoints, geen circular deps, SSOT voor config/DB, en een repo-map die klopt.
+- Code Quality: consistente style/lint, geen import-time side effects in runtime, goede naming, kleine files (geen "god files"), en duidelijke error types.
+- Complexity & Bugs: hotspots geidentificeerd, guardrails voor edge cases, geen silent fallbacks, en bewezen correcte error handling op IO-randen.
+- Testing: tests dekken kritieke paden + edge cases, deterministisch (geen network/secrets nodig), coverage gates, en duidelijke test-structuur.
+- Dependencies: lockfiles aanwezig, minimal surface area, updates/alerts proces, en geen ongebruikte packages.
+- Security: secrets management, least privilege, input validation, authz/authn checks, veilige defaults, en CI secret scanning (of UNKNOWN met verificatie).
+- Ops/Reliability: health checks, metrics/logging, duidelijke runbooks, fail-closed degradatie, en reproduceerbare deploy/run.
+- Documentation: START_HERE + SSOT docs, geen tegenstrijdige docs, en elke entrypoint heeft run-instructies.
+- Developer Experience: 1-command setup, duidelijke tooling (format/lint/test), en snelle feedback loops (CI, pre-commit optioneel).
+- Feature Flags: flags centraal beheerd, default-off/on expliciet, remove plan, en tests die beide paden dekken waar relevant.
+- Domain/Spec Compliance: API/specs/contracten zijn SSOT, shape checks bestaan, en gedrag matcht de spec (of UNKNOWN met concrete verificatie).
+
 #### Stap 3 - Database scan (verplicht als er een DB is)
 Als er database(s) zijn (bv. `*.db`, `*.sqlite`, `*.sqlite3`, migrations folder, ORM schema):
 1. Identificeer de **source of truth** (migrations vs "create-if-not-exists" code vs managed DB).
@@ -222,6 +260,7 @@ Als er database(s) zijn (bv. `*.db`, `*.sqlite`, `*.sqlite3`, migrations folder,
 ---
 
 ### Evidence regels (hard)
+- Nooit secrets/tokens/PII in je output: redacteer. Toon alleen key-namen, file paths, en minimale contextregels.
 - Elke gap heeft exacte locatie: `path:line` of command + relevante output.
 - Geen generieke statements ("meer tests") zonder concreet voorstel (welke tests, waar, wat is de DoD).
 - Als je iets niet kunt verifiëren: label als **UNKNOWN** en geef een 1-liner command/check om het te bewijzen.
@@ -247,6 +286,12 @@ Als in de omgeving een CTO template beschikbaar is (bijv. `CTO_REVIEW_TEMPLATE.m
 ---
 
 ## Changelog
+
+### v2.1 (2026-02-21)
+- Fail-closed fallback toegevoegd voor agents zonder filesystem write
+- Decision tree aangepast zodat P3 (polish) ook haalbaar is bij deterministische non-blocking issues
+- Scoring verduidelijkt (clamp + rounding) + confidence toegevoegd voor UNKNOWNs
+- Harde regel toegevoegd: nooit secrets/tokens in output (altijd redacteren)
 
 ### v2.0 (2026-01-21)
 - **P1 gesplitst** in P1-CRITICAL (-1.0) en P1-QUICK (-0.5)
