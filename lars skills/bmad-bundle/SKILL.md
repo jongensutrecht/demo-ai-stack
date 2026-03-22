@@ -38,7 +38,8 @@ Gebruik: `/skill:bmad-bundle <input_md_path>`
    - relevante P1/P2/P3 risico's
 7. P3 mag nooit verdwijnen uit rapportage; als er geen P3 is, schrijf expliciet `None`.
 8. File limits blijven hard: max 300 regels + max 15 functies per niet-test file.
-9. **Universele guards gelden** - lees `~/.pi/agent/skills/_guards.md` en pas alle guards toe op stories, reviews en uitvoering.
+9. **Verboden woorden zonder bewijs**: de woorden `done`, `fixed`, `working`, `correct`, `passed`, `verified`, `rendering correctly` zijn verboden in story-status, commit messages en rapportages tenzij er bijbehorend runtime-bewijs is (e2e output, screenshots, test results, logs). Zonder bewijs: gebruik feitelijke taal zoals `build uitgevoerd`, `server gestart`, `screenshot genomen`, `verificatie nog niet compleet`.
+10. **Universele guards gelden** - lees `~/.pi/agent/skills/_guards.md` en pas alle guards toe op stories, reviews en uitvoering.
 
 ## 10/10-kader voor BMAD bundle
 
@@ -180,10 +181,16 @@ SWEEP
 9. **STORY_REMEDIATE**
    - Action: fix the current story only, then re-run `STORY_VERIFY`.
    - Must be a productive repair loop with new evidence.
+   - **Probe-before-block**: before claiming BLOCKED on tool/env failure, run 3 probes:
+     1. no-op probe (`pwd`, `echo ok`, `true`)
+     2. target tool probe (`npm -v`, `python3 --version`, `playwright --help`)
+     3. task-level probe (port check, file write, build dry-run)
+     If any probe succeeds, the "tools broken" claim is invalid without further evidence.
    - Repeated unrecoverable failure -> `BLOCKED`
 
 10. **STORY_MERGE**
-   - Action: merge completed story into `main-merge`, mark story via `bmad_story_state` as `done`.
+   - Action: merge completed story into `main-merge`, mark story via `bmad_story_state` as `done` (status: `VERIFIED_DONE`).
+   - A story is only `VERIFIED_DONE` when: all verify checks passed, all required evidence exists, and no forbidden success words were used without proof. If verification is incomplete, status stays `IN_PROGRESS`, not `done`.
    - **Immediately** transition to `RUN2_SELECT_STORY`. Do NOT stop, report, or ask the user. Just continue.
    - Failure -> `BLOCKED`
 

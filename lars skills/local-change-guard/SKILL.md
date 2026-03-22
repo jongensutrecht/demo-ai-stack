@@ -106,7 +106,10 @@ Universele guards: zie `~/.pi/agent/skills/_guards.md`. Local-specifiek: geen pl
    - je touched paths allowlist breekt open
    - de wijziging dwingt tot architectuurkeuze/spec-uitzoekwerk
    - je kunt geen sluitende CTO/file-limit bewijsvoering meer geven
-10. **Universele guards gelden** — lees `~/.pi/agent/skills/_guards.md` en pas alle guards toe.
+10. **Verboden woorden zonder bewijs**: `done`, `fixed`, `working`, `correct`, `passed`, `verified` zijn verboden in rapportage/commit tenzij runtime-bewijs aanwezig is.
+11. **Probe-before-block**
+   Voordat je claimt dat tools/env stuk zijn: draai 3 probes (no-op, target tool, task-level). Als één slaagt, is "tools kapot" geen geldige blocker.
+11. **Universele guards gelden** — lees `~/.pi/agent/skills/_guards.md` en pas alle guards toe.
 
 ## Workflow
 

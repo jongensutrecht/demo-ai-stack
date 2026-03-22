@@ -115,8 +115,18 @@ Treat `/skill:cto-guard` as a deterministic review state machine.
    - Hard rule: flag any AC verification that uses code-presence (grep/rg) as proof for a runtime-behavior claim. That is not valid evidence.
    - Success -> `WRITE_REPORT`
 
-6. **WRITE_REPORT**
+6. **EXECUTION_HONESTY_SCAN**
+   - Scan all story outputs, final.json, screenshots, logs, test output, and status claims.
+   - Flag any mismatch between claims and evidence. Specifically:
+     - success claims (`done`, `fixed`, `working`, `correct`, `passed`, `verified`) without matching runtime proof → P1-CRITICAL
+     - BLOCKED claims without probe evidence (3 probes: no-op, target, task) → P1-QUICK
+     - incomplete verify set for runtime changes (missing e2e/screenshots) → P2
+     - run stopped while backlog has executable open stories without proven global blocker → P1-CRITICAL
+   - Success -> `WRITE_REPORT`
+
+7. **WRITE_REPORT**
    - Write the full CTO review artifact.
+   - Include the Execution Honesty findings as a separate section in the report.
    - Success -> `BMAD_FOLLOWUP_DECISION`
    - Failure -> `BLOCKED`
 
@@ -216,8 +226,17 @@ Stop **niet** op:
 - alleen een gaplijst zonder actieplan / Path to 10/10
 - een review met unresolved gaps zonder BMAD follow-up (tenzij expliciet `review-only`)
 
+## Verplichte extra output-sectie
+
+### Execution Honesty & Verify Integrity
+- welke succesclaims zijn gedaan
+- welk bewijs daar wel of niet onder ligt
+- welke verify-stappen ontbreken
+- of blocker-claims voldoende probes hadden
+- of de run te vroeg is gestopt (backlog open zonder bewezen globale blocker)
+
 ## Verdict
 
-- ✅ **COMPLIANT** - reviewed scope is CTO-compliant
+- ✅ **COMPLIANT** - reviewed scope is CTO-compliant én execution honesty is op orde
 - ⚠️ **CONDITIONAL** - functioneel acceptabel, maar er blijven expliciete gaps over
-- ❌ **NON-COMPLIANT** - blokkerende gaps, werk moet stoppen tot fix
+- ❌ **NON-COMPLIANT** - blokkerende gaps of onbewezen succesclaims, werk moet stoppen tot fix

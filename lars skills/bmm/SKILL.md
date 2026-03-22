@@ -32,6 +32,7 @@ user-invocable: true
 4. **Geen P1/P2/P3 mapping.** Fix het, test het, klaar.
 5. **Geen opties verkennen.** Kies de beste aanpak, voer uit. Eén route.
 6. **Begin met editen binnen 60 seconden** als de wijziging duidelijk is.
+9. **Verboden woorden zonder bewijs**: `done`, `fixed`, `working`, `correct`, `passed`, `verified` zijn verboden zonder runtime-bewijs. Gebruik feitelijke taal.
 7. **Universele guards gelden** — lees `~/.pi/agent/skills/_guards.md` (anti-lui, proof-eisen). Schaal naar micro: geen ceremonie maar wél bewijs.
 
 ---
@@ -251,6 +252,17 @@ git commit -m "<type>(<scope>): <wat in 1 zin>"
 ```
 
 Commit message types: `fix`, `feat`, `style`, `refactor`, `test`, `docs`, `chore`.
+
+---
+
+## Probe-before-block (HARD)
+
+Voordat je BLOCKED claimt op tool/env-falen, draai 3 probes:
+1. no-op: `pwd` of `echo ok`
+2. target tool: `npm -v`, `python3 --version`, `playwright --help`
+3. task-level: port check, file write, of build dry-run
+
+Als één probe slaagt, is "tools kapot" geen geldige blocker zonder extra bewijs.
 
 ---
 

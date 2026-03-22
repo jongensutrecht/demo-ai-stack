@@ -47,6 +47,7 @@ user-invocable: true
 17. **Elke story moet een regressie-scope benoemen** — benoem expliciet welke bestaande tests/paden na de change nog steeds groen moeten zijn. Minimaal: touched modules + directe afhankelijkheden + het gate-commando.
 18. **ACs moeten het hele facet dekken, niet alleen een smal punt** — als een story bedoeld is om facet X te verbeteren, dan moet de AC het volledige facet meten, niet alleen één voorbeeld. Concreet: een AC die 5 van 21 strings checkt is ongeldig. Een AC die "grep vindt X in sourcecode" checkt zonder runtime-bewijs is ongeldig. Een AC die alleen nieuw gedrag afdwingt maar bestaande schendingen negeert is ongeldig.
 19. **Bewijs moet bewijs zijn** — een AC-verificatie die alleen checkt of code bestaat (grep/rg) zonder te bewijzen dat het werkt (runtime/e2e/output) is geen geldig bewijs voor runtime-facetten. Onderscheid expliciet: code-presence check vs runtime-behavior proof.
+20. **Verboden woorden in story ACs** — ACs mogen niet als verificatie gebruiken: `works correctly`, `renders properly`, `is fixed`, `passes`. Vervang door bewijsbare criteria met concrete command + expected output.
 
 ## 10/10-kader voor BMAD-input
 
