@@ -130,6 +130,7 @@ Universele guards: zie `~/.pi/agent/skills/_guards.md`. Repo-10x-specifieke aanv
 - Detecteer stacks (Python / Node (JS/TS) / PHP) en monorepo-boundaries (waar begint/eindigt een project).
 
 ### 1) Evidence verzamelen (minimaal maar hard)
+- **If `scripts/check_repo_health.py` exists: run it first.** Map PASS/FAIL results directly to the A-I scorecard. Health check output is deterministic ground truth — do not contradict it with ad-hoc checks.
 - Draai het primaire gates-commando (of identificeer dat het ontbreekt).
 - Inspecteer repo-root top-level items.
 - Check of search-ignore bestaat en effectief is.

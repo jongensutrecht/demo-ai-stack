@@ -47,6 +47,7 @@ Wees **brutaal eerlijk**. Geen diplomatieke verpakking, geen "overall goed maar.
    - Success -> `DEEP_DIVE`
 
 2. **DEEP_DIVE**
+   - **If `scripts/check_repo_health.py` exists: run it FIRST.** Its output is the deterministic baseline for all measurable facets. Scores for measurable facets (architecture, naming, error handling, testing, security, DX, git discipline, consistency) MUST align with the health check output. You may add qualitative observations but may NOT contradict the measured values.
    - Systematisch door de 10 facetten hieronder.
    - Per facet: minimaal 2 concrete bewijzen (positief of negatief).
    - For large codebases (50+ files): use Serena (`/skill:serena`) for symbol-level inspection of architecture, boundaries, and naming patterns. Check `tmux has-session -t serena` first; start server if needed.
