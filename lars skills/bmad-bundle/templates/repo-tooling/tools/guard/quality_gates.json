@@ -1,0 +1,65 @@
+{
+  "installs": [
+    {
+      "cwd": ".",
+      "lockfile": "package-lock.json",
+      "marker_dir": "node_modules",
+      "command": [
+        "npm",
+        "ci"
+      ]
+    },
+    {
+      "cwd": "web",
+      "lockfile": "package-lock.json",
+      "marker_dir": "node_modules",
+      "command": [
+        "npm",
+        "ci"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "cwd": ".",
+      "command": [
+        "python3",
+        "scripts/check_file_limits.py"
+      ]
+    },
+    {
+      "cwd": ".",
+      "command": [
+        "openspec",
+        "validate",
+        "--all",
+        "--strict",
+        "--no-interactive"
+      ]
+    },
+    {
+      "cwd": ".",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ]
+    },
+    {
+      "cwd": ".",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ]
+    },
+    {
+      "cwd": ".",
+      "command": [
+        "npm",
+        "run",
+        "test:all"
+      ]
+    }
+  ]
+}

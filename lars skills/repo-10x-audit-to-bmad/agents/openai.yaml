@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repo 10/10 Audit -> BMAD"
+  short_description: "Hard PASS/FAIL repo audit + BMAD-ready plan to reach 10/10"
+  default_prompt: "Audit this repo against the 10/10 contract and generate BMAD-ready input to bring it to 10/10, enforcing <=300 lines and <=15 functions for non-test files."

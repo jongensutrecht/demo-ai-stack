@@ -126,6 +126,54 @@ All files           |   100   |   100    |   100   |   100   |
 
 ---
 
+## File Size Detection
+
+### Check commands:
+
+```bash
+# Files > 300 lines (excluding tests/types)
+find src -name "*.ts" -o -name "*.tsx" | \
+  grep -v "\.d\.ts$" | \
+  xargs wc -l | \
+  awk '$1 > 300 && !/total$/ {print "❌ TOO LONG:", $2, "("$1" lines)"}'
+
+# Files > 15 functions
+for f in src/**/*.ts src/**/*.tsx; do
+  count=$(grep -cE "^(export )?(async )?function |const \w+ = (async )?\(" "$f" 2>/dev/null || echo 0)
+  if [ "$count" -gt 15 ]; then
+    echo "❌ TOO MANY FUNCTIONS: $f ($count functions)"
+  fi
+done
+
+# Functions > 25 lines (heuristic)
+# Handmatige review vereist
+```
+
+### Uitzonderingen:
+
+```bash
+# Test files: max 400 lines
+find tests -name "*.ts" | xargs wc -l | awk '$1 > 400 {print "❌", $2}'
+
+# Type definitions: geen limiet
+# Barrel files (index.ts met alleen exports): geen limiet
+```
+
+### Bij violation:
+
+```
+❌ FILE SIZE VIOLATION
+   File: src/lib/capture/conversation.ts
+   Problem: 287 lines (max: 200)
+
+   ACTIE: Split bestand op basis van verantwoordelijkheden:
+   - conversation-parser.ts (parsing logic)
+   - conversation-validator.ts (validation)
+   - conversation-types.ts (types/interfaces)
+```
+
+---
+
 ## Automated Check Script
 
 ```bash
@@ -152,7 +200,19 @@ if [ -n "$FALLBACKS" ]; then
   exit 1
 fi
 
-# 3. Coverage check
+# 3. File size check (max 300 lines)
+echo "Checking file sizes..."
+LARGE_FILES=$(find src -name "*.ts" -o -name "*.tsx" 2>/dev/null | \
+  grep -v "\.d\.ts$" | \
+  xargs wc -l 2>/dev/null | \
+  awk '$1 > 300 && !/total$/ {print $2 " (" $1 " lines)"}')
+if [ -n "$LARGE_FILES" ]; then
+  echo "❌ FILE SIZE VIOLATION (max 300 lines):"
+  echo "$LARGE_FILES"
+  exit 1
+fi
+
+# 4. Coverage check
 echo "Checking coverage..."
 npm run test -- --coverage --coverageThreshold='{"global":{"lines":100}}' --silent
 if [ $? -ne 0 ]; then

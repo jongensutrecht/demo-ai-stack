@@ -1,7 +1,7 @@
 ---
 name: plan-to-bmad
 # prettier-ignore
-description: Onderzoek of transformeer en genereer BMAD-ready input (md+json) met verplichte Universal CTO v2.4 intake.
+description: Onderzoek of transformeer en genereer BMAD-ready input (md+json) met verplichte Universal CTO v2.5 intake.
 allowed-tools: Read, Grep, Glob, Bash, Write, AskUserQuestion
 user-invocable: true
 ---
@@ -14,13 +14,13 @@ user-invocable: true
 
 ### Modus 1: Direct onderzoek
 
-`/plan-to-bmad "beschrijving van wat je wilt"`
+`/skill:plan-to-bmad "beschrijving van wat je wilt"`
 
 - Doet repo-onderzoek en genereert BMAD input.
 
 ### Modus 2: Vanuit bestaand plan of review
 
-`/plan-to-bmad <path-naar-plan.md>`
+`/skill:plan-to-bmad <path-naar-plan.md>`
 
 - Transformeert een planbestand of CTO-reviewbestand naar BMAD input.
 
@@ -42,6 +42,62 @@ user-invocable: true
 9. Als `docs/CTO_RULES.md` bestaat: koppel elke P0 aan >= 1 CTO Rule ID + Facet.
 10. P1/P2/P3 moeten altijd expliciet aanwezig zijn (ook als `None`).
 11. Geen TODO's/open eindjes in output.
+12. **Universele guards gelden** — lees `~/.pi/agent/skills/_guards.md` en pas alle guards toe.
+16. **Elke story met runtime-wijzigingen moet TDD specificeren** - benoem expliciet welke falende test(s) eerst geschreven moeten worden vóór implementatie. Dit maakt TDD zichtbaar in het plan, niet alleen afgedwongen door de uitvoerder.
+17. **Elke story moet een regressie-scope benoemen** — benoem expliciet welke bestaande tests/paden na de change nog steeds groen moeten zijn. Minimaal: touched modules + directe afhankelijkheden + het gate-commando.
+18. **ACs moeten het hele facet dekken, niet alleen een smal punt** — als een story bedoeld is om facet X te verbeteren, dan moet de AC het volledige facet meten, niet alleen één voorbeeld. Concreet: een AC die 5 van 21 strings checkt is ongeldig. Een AC die "grep vindt X in sourcecode" checkt zonder runtime-bewijs is ongeldig. Een AC die alleen nieuw gedrag afdwingt maar bestaande schendingen negeert is ongeldig.
+19. **Bewijs moet bewijs zijn** — een AC-verificatie die alleen checkt of code bestaat (grep/rg) zonder te bewijzen dat het werkt (runtime/e2e/output) is geen geldig bewijs voor runtime-facetten. Onderscheid expliciet: code-presence check vs runtime-behavior proof.
+
+## 10/10-kader voor BMAD-input
+
+Universele guards: zie `~/.pi/agent/skills/_guards.md`. BMAD-specifieke aanvulling:
+
+- vertaalt onderzoek naar een **transformatiestrategie**, niet naar een TODO-lijst
+- maakt voor een volgende uitvoerder meteen duidelijk waarom deze stories de repo/product merkbaar dichter bij 10/10 brengen
+
+## Autonomous state machine (Pi contract)
+
+Treat `/skill:plan-to-bmad` as an explicit preparation state machine.
+
+### States
+
+1. **INPUT_CLASSIFY**
+   - Detect: direct problem statement vs existing plan/review file.
+   - Success -> `BOOTSTRAP_WORKTREE`
+   - Failure -> `BLOCKED`
+
+2. **BOOTSTRAP_WORKTREE**
+   - Create or enter the process-specific `main-merge` worktree.
+   - Success -> `REPO_RESEARCH`
+   - Failure -> `BLOCKED`
+
+3. **REPO_RESEARCH**
+   - Read relevant repo files, rules, patterns, sources of truth.
+   - For large codebases (50+ files): use Serena (`/skill:serena`) for symbol overview and dependency tracing instead of exhaustive grep. Check `tmux has-session -t serena` first; start server if needed.
+   - Success -> `CTO_INTAKE`
+   - Failure -> `BLOCKED`
+
+4. **CTO_INTAKE**
+   - Build explicit Universal CTO scope map, facets, P1/P2/P3 risks, invariants, constraints.
+   - Success -> `VERIFY_COMPLETENESS`
+
+5. **VERIFY_COMPLETENESS**
+   - If essential verification/invariants are missing and cannot be derived: ask at most the documented questions.
+   - If still incomplete -> `BLOCKED`
+   - Else -> `WRITE_BMAD_INPUT`
+
+6. **WRITE_BMAD_INPUT**
+   - Write `bmad_input/<process>.md` + `.json`.
+   - Success -> `COMMIT_INPUT`
+   - Failure -> `BLOCKED`
+
+7. **COMMIT_INPUT**
+   - Commit deterministically in `main-merge`.
+   - Success -> `DONE`
+
+8. **DONE / BLOCKED**
+   - Terminal states only.
+   - Do not stop after research notes or half-filled BMAD input.
 
 ## Workflow
 
@@ -66,19 +122,26 @@ cd "$MERGE_WT"
 ### 1) Analyse → BMAD input
 
 1. Lees plan of description (modus detectie).
-2. Onderzoek relevante files, patterns, risico's, touched paths allowlist en bronnen.
-3. Lees `docs/CTO_RULES.md` als die bestaat.
+2. Lees `LEARNINGS.md` in de repo root als die bestaat (laatste 10 entries). Lees `~/.pi/agent/skills/compound-learning/LEARNINGS_GLOBAL.md` als die bestaat (laatste 5 entries). Verwerk relevante learnings als extra constraints of risico's in het plan.
+3. Onderzoek relevante files, patterns, risico's, touched paths allowlist en bronnen.
+4. Lees `docs/CTO_RULES.md` als die bestaat.
 4. Lees `docs/UNIVERSAL_CTO_REPO_SCAN_PROMPT_v2.md` volledig als die bestaat.
+5. Als `openspec/` bestaat: lees bestaande specs (`openspec/specs/*.md`, `openspec/changes/*/specs/*/spec.md`) en bepaal per story welke specs geraakt worden. Per story die een spec raakt: benoem expliciet dat de spec mee-geüpdatet moet worden. Dit voorkomt dat je achteraf ontdekt dat een story een spec breekt.
 5. Leg Universal CTO intake vast:
    - scope map
    - facet applicability (`Applicable` / `N/A` / `UNKNOWN`)
    - kandidaat-gaps / delta-risico's met P1/P2/P3
 6. Extraheer: P0/P1/P2/P3, invariants, constraints, out-of-scope.
-7. Vraag ontbrekende verificatie/invariants (max 4 vragen) en STOP als incompleet.
-8. Schrijf output in `MERGE_WT`:
+7. Vorm dit om tot **3-7 hoge-hefboommoves** met volgorde, doelbeeld en proof of done; vermijd micro-story versnippering.
+8. Per story met runtime-wijzigingen: benoem welke falende test(s) eerst geschreven moeten worden (TDD).
+9. Per story: benoem de regressie-scope - welke bestaande tests/paden na de change nog groen moeten zijn.
+10. Vraag ontbrekende verificatie/invariants (max 4 vragen) en STOP als incompleet.
+9. Schrijf output in `MERGE_WT`:
    - `bmad_input/<process>.md`
    - `bmad_input/<process>.json`
-   volgens `knowledge/bmad-template.md`.
+   volgens `knowledge/bmad-template.md`, plus expliciet:
+   - `10/10 Kader` (wat wel / niet)
+   - `Path to 10/10` (waarom deze volgorde en waarom dit geen lui plan is)
 
 ### 2) Commit (verplicht; determinisme)
 
@@ -99,9 +162,23 @@ git commit -m "bmad_input($PROCESS): add BMAD input"
 - repo-10x impact / SSOT impact
 - voldoende context voor latere `Facet Scores Overview`
 - eerste `Path to 10/10` richting / closure-pad
+- per story: waarom high leverage, doelbeeld, niet-doen, proof of done
+- per story met runtime-wijzigingen: welke falende test(s) eerst (TDD-spec)
+- per story: regressie-scope (bestaande tests/paden die groen moeten blijven)
+- per story: welke OpenSpec specs geraakt worden en mee-geüpdatet moeten worden (als `openspec/` bestaat)
+
+## Wat géén geldig stopmoment is
+
+Universele stopmomenten: zie `~/.pi/agent/skills/_guards.md`. Skill-specifiek:
+
+Stop **niet** op:
+- alleen repo-onderzoek zonder BMAD input files
+- alleen een scope- of risico-overzicht
+- een half ingevulde `.md` zonder `.json`
+- een paar open TODO's/invariants die nog niet fail-closed zijn gemaakt
 
 ## Gerelateerde Skills
 
-- `/cto-guard` - volledige Universal CTO Review v2.4
-- `/bmad-micro` - kleine lokale wijziging zonder full BMAD
-- `/bmad-bundle` - proof-gated RUN2 + merge-gating
+- `/skill:cto-guard` - volledige Universal CTO Review v2.5
+- `/skill:bmm` - kleine lokale wijziging zonder full BMAD
+- `/skill:bmad-bundle` - proof-gated RUN2 + merge-gating
