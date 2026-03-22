@@ -3,28 +3,33 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: sync-skills.sh [--from-claude|--from-repo] [--dry-run]
+Usage: sync-skills.sh [--from-repo|--from-claude] [--apply]
 
-Default: --from-claude
+Default behavior:
+  - source of truth = repo/skills
+  - mode = dry-run
+
+Flags:
+  --from-repo    Sync from repo/skills -> ~/.claude/skills (default)
   --from-claude  Sync from ~/.claude/skills -> repo/skills
-  --from-repo    Sync from repo/skills -> ~/.claude/skills
-  --dry-run      Show what would change
+  --apply        Perform the sync (without this flag the script is dry-run only)
+  -h, --help     Show this help
 USAGE
 }
 
-mode="from-claude"
-dry_run=""
+mode="from-repo"
+apply="false"
 
 for arg in "$@"; do
   case "$arg" in
-    --from-claude)
-      mode="from-claude"
-      ;;
     --from-repo)
       mode="from-repo"
       ;;
-    --dry-run)
-      dry_run="--dry-run"
+    --from-claude)
+      mode="from-claude"
+      ;;
+    --apply)
+      apply="true"
       ;;
     -h|--help)
       usage
@@ -40,9 +45,10 @@ done
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../.." && pwd)"
-
 repo_skills="${repo_root}/skills"
 claude_skills="${HOME}/.claude/skills"
+backup_root="${repo_root}/artifacts/backups"
+timestamp="$(date +%Y%m%d_%H%M%S)"
 
 if [ ! -d "$repo_skills" ]; then
   echo "Missing repo skills folder: $repo_skills" >&2
@@ -54,14 +60,27 @@ if [ ! -d "$claude_skills" ]; then
   exit 1
 fi
 
-src=""
-dest=""
-if [ "$mode" = "from-claude" ]; then
-  src="${claude_skills}/"
-  dest="${repo_skills}/"
-else
+if [ "$mode" = "from-repo" ]; then
   src="${repo_skills}/"
   dest="${claude_skills}/"
+else
+  src="${claude_skills}/"
+  dest="${repo_skills}/"
 fi
 
-rsync -a --delete --exclude '.git' $dry_run "$src" "$dest"
+rsync_args=( -a --delete --exclude '.git' )
+if [ "$apply" != "true" ]; then
+  rsync_args+=( --dry-run )
+  echo "[INFO] Dry-run mode (add --apply to perform changes)"
+else
+  mkdir -p "$backup_root"
+  backup_tar="${backup_root}/skills-sync_${mode}_${timestamp}.tar.gz"
+  tar -czf "$backup_tar" -C "$dest" .
+  echo "[INFO] Backup created: $backup_tar"
+fi
+
+echo "[INFO] source: $src"
+echo "[INFO] destination: $dest"
+rsync "${rsync_args[@]}" "$src" "$dest"
+
+echo "[OK] skills sync completed"

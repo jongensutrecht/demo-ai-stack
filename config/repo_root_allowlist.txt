@@ -1,0 +1,23 @@
+# Allowed top-level entries (tracked or intentional local contract items)
+.claude/
+.github/
+.ignore
+.gitignore
+AGENTS.md
+README.md
+INSTALL.ps1
+LICENSE
+SECURITY.md
+pyproject.toml
+HANDOFF_2026-01-22.md
+bmad_autopilot_kit/
+bmad_input/
+config/
+docs/
+lars skills/
+scripts/
+skills/
+stories/
+templates/
+test-results/
+tools/

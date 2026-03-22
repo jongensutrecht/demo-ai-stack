@@ -1,55 +1,36 @@
 # BMAD story preflight (RUN1 output check)
 
-Doel: voor je RUN2 (runner build) uitvoert, valideren dat RUN1 correcte story files heeft gemaakt:
-- story IDs en bestandsnamen zijn contractueel (hyphen + dot)
-- per AC: exact 1 `Verification` + 1 `Expected` (fail-closed)
-- touched paths allowlist bestaat en is niet leeg
-- (optioneel) `PROCESS.md` canonical order matcht met story files
+Doel: vóór RUN2 valideren dat RUN1 correcte story files heeft gemaakt.
 
 Bij errors: exit code `2` (fail-closed), tenzij je `-WarnOnly` gebruikt.
 
 ## Wat wordt gecheckt
-- Stories in `stories/<process>/` met bestandsnaam `PREFIX-001.md` of `PREFIX.001.md`
-- `## Acceptance Criteria`: elke `**ACn:**` heeft exact 1 verification-pair
-  - Canoniek: `- **Verification (repo-root):** \`...\`` en `- **Expected:** \`...\``
-  - Legacy compat: `- Verification ...` en `- Expected: ...`
-- `### Touched paths allowlist`: minimaal 1 repo-relatief pad
-- `## Status`: `ready-for-dev` (of `drafted` alleen met `-AllowDrafted`)
+- stories in `stories/<process>/` met contractuele bestandsnamen
+- per AC exact 1 `Verification` + 1 `Expected`
+- touched paths allowlist bestaat en is niet leeg
+- optioneel: `PROCESS.md` canonical order matcht met story files
 
-## Gebruik
+## Gebruik in deze repo
 
 ```powershell
-pwsh ./bmad_autopilot_kit/tools/bmad-story-preflight/preflight.ps1 `
-  -RepoRoot "C:\path\to\repo-root"
+pwsh ./tools/preflight/preflight.ps1 -RepoRoot .
 ```
 
-Als je meerdere processen hebt:
+Met expliciet proces:
 
 ```powershell
-pwsh ./bmad_autopilot_kit/tools/bmad-story-preflight/preflight.ps1 `
-  -RepoRoot "C:\path\to\repo-root" `
-  -Process "mijn_process"
+pwsh ./tools/preflight/preflight.ps1 -RepoRoot . -Process "mijn_process"
 ```
 
-Als je drafted stories tijdelijk wil toestaan (alleen warnings):
+Met JSON output:
 
 ```powershell
-pwsh ./bmad_autopilot_kit/tools/bmad-story-preflight/preflight.ps1 `
-  -RepoRoot "C:\path\to\repo-root" `
-  -AllowDrafted
+pwsh ./tools/preflight/preflight.ps1 -RepoRoot . -Process "mijn_process" -JsonOutput ".\artifacts\preflight.json"
 ```
 
-Als je machine-readable output wil (voor tooling/CI):
+## Gebruik in geëxporteerde kit
 
-```powershell
-pwsh ./bmad_autopilot_kit/tools/bmad-story-preflight/preflight.ps1 `
-  -RepoRoot "C:\path\to\repo-root" `
-  -Process "mijn_process" `
-  -JsonOutput ".\\artifacts\\preflight.json"
-```
+De huidige export staat onder:
+- `bmad_autopilot_kit/tools_claude/bmad-story-preflight_claude/preflight_claude.ps1`
 
-Self-check (fixtures, end-to-end):
-
-```powershell
-pwsh ./bmad_autopilot_kit/tools/bmad-story-preflight/self_check.ps1
-```
+Gebruik daarvoor het geëxporteerde pad letterlijk; de oude verwijzing naar `bmad_autopilot_kit/tools/bmad-story-preflight/` is niet canoniek in deze repo.

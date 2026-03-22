@@ -1,0 +1,25 @@
+.git/
+.worktrees/
+worktrees_claude/
+node_modules/
+vendor/
+.venv/
+venv/
+__pycache__/
+dist/
+build/
+.next/
+out/
+coverage/
+.pytest_cache/
+logs/
+artifacts/
+output/
+test-results/
+*.log
+*.zip
+*.tar.gz
+.claude/skills/
+lars skills/
+HANDOFF_*.md
+docs/CTO_REVIEW_*.md

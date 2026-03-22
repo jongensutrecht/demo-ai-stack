@@ -138,7 +138,7 @@ Schrijf naar `bmad_input/<naam>.md`:
 - [ ] `npm run test` → exit 0
 - [ ] `npm run build` → exit 0
 - [ ] max 300 regels per file
-- [ ] max 20 functies per file
+- [ ] max 15 functies per file
 
 ## Touched paths (allowlist)
 
@@ -158,7 +158,7 @@ Schrijf naar `bmad_input/<naam>.md`:
 2. **Verificatie verplicht** - Elke P0 feature heeft `[command]` + `[expected]`
 3. **P1 risico check** - Security/Data Loss/Architecture risico's identificeren
 4. **Tech stack detectie** - Uit repo, vraag alleen bij ambiguïteit
-5. **File limits** - Constraints bevatten max 300 regels, max 20 functies
+5. **File limits** - Constraints bevatten max 300 regels, max 15 functies
 
 ---
 

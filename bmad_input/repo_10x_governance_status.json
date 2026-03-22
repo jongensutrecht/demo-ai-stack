@@ -1,0 +1,117 @@
+{
+  "project": {
+    "name": "Repo 10x Governance Status",
+    "repo": "demo-ai-stack",
+    "goal": "Voeg een kleine helper toe die canonieke governance-bronnen toont zonder grote refactor",
+    "tech_stack": ["Python", "Markdown"]
+  },
+  "research_summary": {
+    "relevant_files": [
+      "scripts/quality_gates.py",
+      "scripts/check_repo_contract.py",
+      "README.md",
+      "docs/START_HERE.md",
+      "docs/SOURCES_OF_TRUTH.md"
+    ],
+    "patterns": [
+      "Repo-governance wordt bewaakt via kleine Python scripts en SSOT docs"
+    ],
+    "risks": ["Architecture"]
+  },
+  "must_haves": [
+    {
+      "id": "P0.1",
+      "title": "Add governance status helper",
+      "requirement": "Voeg scripts/show_governance_status.py toe dat de canonieke governance-bronnen en hun aanwezigheid toont",
+      "risk_check": "Architecture",
+      "cto_rules": ["DOC-004", "DX-002", "DX-003"],
+      "cto_facets": ["Documentation", "Developer Experience", "Architecture"],
+      "verification": {
+        "command": "python3 scripts/show_governance_status.py",
+        "expected": "rules_registry: docs/CTO_RULES.md [present]"
+      }
+    },
+    {
+      "id": "P0.2",
+      "title": "Document the helper in quickstart docs",
+      "requirement": "README en START_HERE noemen het helper script expliciet",
+      "risk_check": "N/A",
+      "cto_rules": ["DOC-003", "DOC-004"],
+      "cto_facets": ["Documentation", "Developer Experience"],
+      "verification": {
+        "command": "rg -n \"show_governance_status.py\" README.md docs/START_HERE.md",
+        "expected": "show_governance_status.py"
+      }
+    },
+    {
+      "id": "P0.3",
+      "title": "Keep governance gates green",
+      "requirement": "De nieuwe helper veroorzaakt geen drift; repo contract, repo-10x contract, search hygiene en file limits blijven groen",
+      "risk_check": "Architecture",
+      "cto_rules": ["ARCH-002", "ARCH-003", "DX-002", "OPS-003"],
+      "cto_facets": ["Architecture", "Developer Experience", "Ops/Reliability"],
+      "verification": {
+        "command": "python3 scripts/quality_gates.py",
+        "expected": "OK: all quality gates passed"
+      }
+    }
+  ],
+  "should_haves": [],
+  "could_haves": [],
+  "later": [],
+  "invariants": [
+    {
+      "id": "INV-01",
+      "invariant": "Geen nieuwe repo-root rommel of non-SSOT drift",
+      "check": "python3 scripts/check_repo_10x_contract.py",
+      "violation": "STOP"
+    },
+    {
+      "id": "INV-02",
+      "invariant": "Geen file-limit overschrijding door helper of proof files",
+      "check": "python3 scripts/check_file_limits.py",
+      "violation": "STOP"
+    }
+  ],
+  "constraints": [
+    "[primary-gate] -> python3 scripts/quality_gates.py -> exit 0",
+    "[repo-10x] -> python3 scripts/check_repo_10x_contract.py -> exit 0",
+    "[lint] -> python3 -m py_compile scripts/show_governance_status.py -> exit 0",
+    "[test] -> helper output command(s) -> exit 0",
+    "file-limits: max 300 lines, max 15 functions (non-tests)"
+  ],
+  "out_of_scope": [
+    "Grote refactor van governance scripts",
+    "Opschonen van alle legacy mirrors",
+    "Nieuwe CI jobs buiten de bestaande quality gate"
+  ],
+  "touched_paths_allowlist": [
+    "scripts/show_governance_status.py",
+    "README.md",
+    "docs/START_HERE.md",
+    "config/repo_root_allowlist.txt",
+    ".ignore",
+    "scripts/check_file_limits.py",
+    "scripts/check_repo_contract.py"
+  ],
+  "cto_rules_check": [
+    "DOC-003 -> START_HERE blijft de operationele gids",
+    "DOC-004 -> canonieke governance-bronnen blijven expliciet",
+    "DX-002 -> primary gate blijft leidend",
+    "DX-003 -> low-noise search contract blijft intact",
+    "ARCH-002 -> repo-root blijft voorspelbaar",
+    "ARCH-003 -> default tooling/search blijft legacy paden uitsluiten",
+    "OPS-003 -> CI/local gate contract blijft hetzelfde"
+  ],
+  "verification_checklist": [
+    "Helper toont alle canonieke governance-bronnen",
+    "Docs verwijzen naar helper",
+    "Quality gates blijven groen"
+  ],
+  "sources": [
+    "docs/CTO_RULES.md",
+    "docs/UNIVERSAL_CTO_REPO_SCAN_PROMPT_v2.md",
+    "docs/START_HERE.md",
+    "docs/SOURCES_OF_TRUTH.md"
+  ]
+}

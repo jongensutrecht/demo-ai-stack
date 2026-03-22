@@ -235,10 +235,34 @@ def show(process_path: Path) -> int:
     return 0
 
 
-def verify(process_path: Path, fail_fast: bool, json_output: Path | None) -> int:
+def verify(
+    process_path: Path,
+    fail_fast: bool,
+    json_output: Path | None,
+    allow_shell: bool,
+) -> int:
     repo = _repo_root()
     process_name = process_path.parent.name
     story_ids = parse_process(process_path)
+
+    if not allow_shell:
+        message = (
+            "Refusing to execute story verification commands without --allow-shell. "
+            "Story files may contain arbitrary commands; only use this on trusted input."
+        )
+        if json_output:
+            write_json(
+                json_output,
+                {
+                    "tool": "story-runner",
+                    "repo_root": str(repo),
+                    "process": str(process_path),
+                    "error": message,
+                    "exit_code": 2,
+                },
+            )
+        print(f"ERROR: {message}", file=sys.stderr)
+        return 2
 
     all_acs: list[AcceptanceCriterion] = []
     for story_id in story_ids:
@@ -399,6 +423,11 @@ def main(argv: list[str] | None = None) -> int:
     p_verify.add_argument("--process", required=True, type=Path)
     p_verify.add_argument("--no-fail-fast", action="store_true")
     p_verify.add_argument("--json-output", type=Path, default=None)
+    p_verify.add_argument(
+        "--allow-shell",
+        action="store_true",
+        help="Explicit opt-in: execute commands parsed from story files",
+    )
 
     args = parser.parse_args(argv)
     if args.cmd == "show":
@@ -409,6 +438,7 @@ def main(argv: list[str] | None = None) -> int:
                 process_path=args.process,
                 fail_fast=not args.no_fail_fast,
                 json_output=args.json_output,
+                allow_shell=args.allow_shell,
             )
         except Exception as exc:  # pragma: no cover - CLI error path
             if args.json_output:

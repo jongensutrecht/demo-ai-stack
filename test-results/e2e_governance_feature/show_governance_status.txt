@@ -1,0 +1,7 @@
+rules_registry: docs/CTO_RULES.md [present]
+audit_process: docs/UNIVERSAL_CTO_REPO_SCAN_PROMPT_v2.md [present]
+quickstart: docs/START_HERE.md [present]
+sources_of_truth: docs/SOURCES_OF_TRUTH.md [present]
+primary_gate: scripts/quality_gates.py [present]
+repo_10x_gate: scripts/check_repo_10x_contract.py [present]
+canonical_skills: skills/ [present]

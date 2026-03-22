@@ -1,0 +1,6 @@
+RUN OPS-001 AC1: python3 scripts/show_governance_status.py
+OK  OPS-001 AC1
+RUN OPS-001 AC2: rg -n "show_governance_status.py" README.md docs/START_HERE.md
+OK  OPS-001 AC2
+RUN OPS-001 AC3: python3 scripts/quality_gates.py
+OK  OPS-001 AC3

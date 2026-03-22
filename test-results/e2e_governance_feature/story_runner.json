@@ -1,0 +1,51 @@
+{
+  "tool": "story-runner",
+  "repo_root": "/home/mrbiggles/dev/github.com/jongensutrecht/demo-ai-stack",
+  "process": "docs/processes/repo_10x_governance_status/PROCESS.md",
+  "results": [
+    {
+      "story_id": "OPS-001",
+      "ac_id": "AC1",
+      "command": "python3 scripts/show_governance_status.py",
+      "expected": "rules_registry: docs/CTO_RULES.md [present]",
+      "expected_type": "output",
+      "expected_exit_code": null,
+      "expected_text": "rules_registry: docs/CTO_RULES.md [present]",
+      "cwd": "/home/mrbiggles/dev/github.com/jongensutrecht/demo-ai-stack",
+      "exit_code": 0,
+      "output_snippet": "rules_registry: docs/CTO_RULES.md [present]\naudit_process: docs/UNIVERSAL_CTO_REPO_SCAN_PROMPT_v2.md [present]\nquickstart: docs/START_HERE.md [present]\nsources_of_truth: docs/SOURCES_OF_TRUTH.md [present]\nprimary_gate: scripts/quality_gates.py [present]\nrepo_10x_gate: scripts/check_repo_10x_contract.py [present]\ncanonical_skills: skills/ [present]",
+      "ok": true,
+      "error": null
+    },
+    {
+      "story_id": "OPS-001",
+      "ac_id": "AC2",
+      "command": "rg -n \"show_governance_status.py\" README.md docs/START_HERE.md",
+      "expected": "show_governance_status.py",
+      "expected_type": "output",
+      "expected_exit_code": null,
+      "expected_text": "show_governance_status.py",
+      "cwd": "/home/mrbiggles/dev/github.com/jongensutrecht/demo-ai-stack",
+      "exit_code": 0,
+      "output_snippet": "README.md:27:python3 scripts/show_governance_status.py\ndocs/START_HERE.md:63:python3 scripts/show_governance_status.py",
+      "ok": true,
+      "error": null
+    },
+    {
+      "story_id": "OPS-001",
+      "ac_id": "AC3",
+      "command": "python3 scripts/quality_gates.py",
+      "expected": "OK: all quality gates passed",
+      "expected_type": "output",
+      "expected_exit_code": null,
+      "expected_text": "OK: all quality gates passed",
+      "cwd": "/home/mrbiggles/dev/github.com/jongensutrecht/demo-ai-stack",
+      "exit_code": 0,
+      "output_snippet": "== Demo AI Stack primary quality gate ==\nRUN python3 scripts/validate_cto_rules_registry.py\nOK: CTO Rule Registry is valid\nrules_count=24\nOK  python3 scripts/validate_cto_rules_registry.py\nRUN python3 scripts/check_repo_contract.py\nOK: repo contract valid\nchecked_files=17\nallowed_top_level=22\nOK  python3 scripts/check_repo_contract.py\nRUN python3 scripts/check_repo_10x_contract.py\nOK: repo-10x contract valid\nchecked_docs=4\nOK  python3 scripts/check_repo_10x_contract.py\nRUN python3 scripts/check_search_hygiene.py\nOK: search hygiene valid\ngolden_queries=7\nOK  python3 scripts/check_search_hygiene.py\nRUN python3 scripts/check_file_limits.py\nOK: file limits valid\nmax_lines=300\nmax_functions=15\nOK  python3 scripts/check_file_limits.py\nOK: all quality gates passed",
+      "ok": true,
+      "error": null
+    }
+  ],
+  "failures": [],
+  "exit_code": 0
+}

@@ -132,7 +132,7 @@ test('ready works with auth', async ({ request }) => {
 
 ## 7) Pipedrive v1 → v2 migratie
 
-Als je app Pipedrive gebruikt: zie `docs/PIPEDRIVE_V2_MIGRATION_PLAYBOOK.md`.
+Als je app Pipedrive gebruikt: zie `docs/PIPEDRIVE_V1_TO_V2_MIGRATION_PLAYBOOK.md`.
 
 Kernverificaties daar:
 - `x-api-token` header (v2 auth)

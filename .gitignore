@@ -13,15 +13,30 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
 
-# Node
+# Node / build outputs
 node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
 
-# Logs
+# Logs / runtime artefacts
+logs/
+artifacts/
+output/
 *.log
+*.zip
+*.tar.gz
 
 # Secrets (nooit committen!)
 .env
 .env.local
 *.key
 credentials.json
+
+# Worktrees / mirrors
+.worktrees/
+worktrees_claude/

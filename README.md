@@ -1,177 +1,131 @@
 # Demo AI Stack
 
-> BMAD Autopilot + CTO Guard + Ralph Loop voor Claude Code
+> BMAD Autopilot + CTO Guard + repo-governance toolkit voor Claude Code
 
-Een complete, deelbare workflow voor story-driven development met kwaliteitsgaranties.
+Deze repo is een **deelbare toolkit** voor story-driven development met CTO traceability, quality gates en repo-governance.
 
----
+## Wat is canoniek?
 
-## Wat zit erin?
+| Onderwerp | Canonieke bron |
+|---|---|
+| CTO Rule Registry | `docs/CTO_RULES.md` |
+| CTO audit-proces | `docs/UNIVERSAL_CTO_REPO_SCAN_PROMPT_v2.md` |
+| Repo quickstart | `docs/START_HERE.md` |
+| Sources of truth map | `docs/SOURCES_OF_TRUTH.md` |
+| Primary quality gate | `scripts/quality_gates.py` |
+| Canonieke repo skills | `skills/` |
 
-| Component | Functie |
-|-----------|---------|
-| `skills/` | Skill-pack (bmad-autopilot, bmad-bundle, plan-to-bmad, ralph-loop, cto-guard, test-guard, invariant-discovery, quick-fix, skill-creator) |
-| `bmad_autopilot_kit/` | Prompts, preflight scripts, templates |
-| `docs/CTO_RULES.md` | CTO review criteria (11 facetten) |
+## Snelle start
 
----
+### 1. Repo-governance valideren
+```bash
+python3 scripts/quality_gates.py
+```
 
-## Installatie
+### 1b. Canonieke governance-bronnen tonen
+```bash
+python3 scripts/show_governance_status.py
+```
 
-### Optie A: PowerShell (Windows)
+Expected:
+- `OK: all quality gates passed`
 
+### 2. Toolkit installeren voor je lokale Claude setup
 ```powershell
 .\INSTALL.ps1
 ```
 
-### Optie B: Handmatig
+### 3. Toolkit in een doelproject plaatsen
+```powershell
+.\INSTALL.ps1 -ProjectPath C:\path\to\target-repo
+```
 
-1. **Kopieer skills naar global:**
-   ```powershell
-   Copy-Item -Recurse .\skills\* $env:USERPROFILE\.claude\skills\
-   ```
+## Wat zit erin?
 
-2. **Kopieer kit naar je project:**
-   ```powershell
-   Copy-Item -Recurse .\bmad_autopilot_kit\ <jouw-project>\bmad_autopilot_kit\
-   Copy-Item .\docs\CTO_RULES.md <jouw-project>\docs\
-   ```
+| Component | Functie |
+|---|---|
+| `skills/` | Canonieke repo-SSOT voor skills |
+| `bmad_autopilot_kit/` | Exported prompts en playbooks |
+| `tools/` | Helper tooling en legacy scripts |
+| `scripts/` | Governance scripts + primary quality gate |
+| `docs/` | Rule registry, scan-proces, quickstart, SSOT docs |
+| `config/` | Golden queries + repo-root allowlist |
 
----
+## Installatiegedrag
+
+`INSTALL.ps1` doet twee dingen:
+1. kopieert `skills/` naar `~/.claude/skills`
+2. kopieert de governance-kit naar een doelproject als je `-ProjectPath` meegeeft
+
+De governance-kit bevat minimaal:
+- `docs/CTO_RULES.md`
+- `docs/UNIVERSAL_CTO_REPO_SCAN_PROMPT_v2.md`
+- `docs/START_HERE.md`
+- `docs/SOURCES_OF_TRUTH.md`
+- `docs/FILE_LIMITS_EXCEPTIONS.md`
+- `SECURITY.md`
+- `scripts/validate_cto_rules_registry.py`
+- `scripts/quality_gates.py`
+- `scripts/check_repo_contract.py`
+- `scripts/check_repo_10x_contract.py`
+- `scripts/check_search_hygiene.py`
+- `scripts/check_file_limits.py`
+- `config/golden_queries.txt`
+- `config/repo_root_allowlist.txt`
+- `.ignore`
 
 ## Gebruik
 
-### 1. Start BMAD Autopilot
-
+### BMAD Autopilot
+```text
+/start-bmad-ralph
 ```
-/bmad-autopilot
+
+### BMAD Micro
+```text
+/bmad-micro
 ```
+Kleine wijziging, geen planfile, geen worktree, wél CTO/universal/repo-10x quality guards.
 
-Vraagt om input .md bestand, genereert stories met CTO traceability.
-
-### 2. CTO Guard (standalone)
-
-```
+### CTO Guard
+```text
 /cto-guard
 ```
 
-Valideert code of stories tegen `docs/CTO_RULES.md`.
-
-### 3. Ralph Loop (automatische iteratie)
-
-```
+### Ralph Loop
+```text
 /ralph-loop
 ```
 
-Itereert over BACKLOG.md tot alle stories [DONE] of [BLOCKED].
+## Quality contract
 
----
+Deze repo mikt op:
+- evidence-based audits
+- fail-closed tooling
+- 1 primary quality gate
+- low-noise search voor LLMs en mensen
+- non-test file limits: **max 300 regels, max 15 functies/methods**
 
-## Workflow Diagram
+Uitzonderingen staan alleen in:
+- `docs/FILE_LIMITS_EXCEPTIONS.md`
 
-```
-Input .md document
-       │
-       ▼
-┌──────────────────┐
-│ CTO GUARD #1     │  PRE-GENERATION
-│ Valideer input   │
-└──────────────────┘
-       │ ✅
-       ▼
-┌──────────────────┐
-│ RUN1: Stories    │  Genereer OPS-001, OPS-002, ...
-│ + BACKLOG.md     │
-└──────────────────┘
-       │
-       ▼
-┌──────────────────┐
-│ CTO GUARD #2     │  POST-GENERATION
-│ Valideer stories │
-└──────────────────┘
-       │ ✅
-       ▼
-┌──────────────────┐
-│ RALPH LOOP       │  Per story:
-│                  │  - Voer uit
-│                  │  - Gate A (ruff + pytest)
-│                  │  - CTO Guard #3
-│                  │  - Update BACKLOG
-└──────────────────┘
-       │
-       ▼
-   Alle [DONE]
-```
+## Legacy / non-SSOT paden
 
----
+Deze paden zijn **niet canoniek** en horen niet als primaire bron gebruikt te worden:
+- `.claude/skills/`
+- `lars skills/`
 
-## Vereisten
+Default search hygiene (`.ignore`) sluit deze paden uit om ruis te verminderen.
 
-- Claude Code CLI
-- PowerShell (Windows) of Bash (Mac/Linux)
-- Git
-- Python + ruff + pytest (voor Gate A)
+## Belangrijke documenten
 
----
-
-## Folder Structuur na Installatie
-
-```
-~/.claude/
-└── skills/
-    ├── bmad-autopilot/
-    ├── bmad-bundle/
-    ├── plan-to-bmad/
-    ├── ralph-loop/
-    ├── cto-guard/
-    ├── test-guard/
-    ├── invariant-discovery/
-    ├── quick-fix/
-    └── skill-creator/
-
-<jouw-project>/
-├── bmad_autopilot_kit/
-│   ├── RUN1_STORY_GENERATION_PROMPT.txt
-│   └── tools/
-├── docs/
-│   ├── CTO_RULES.md
-│   └── CONTRACT.md
-└── stories/<process>/
-    ├── OPS-001.md
-    ├── OPS-002.md
-    └── BACKLOG.md
-```
-
----
-
-## CTO Guard Output (5 secties)
-
-1. **CTO RULES APPLIED** - Welke regels gebruikt
-2. **TRACEABILITY MAP** - Waar elke regel gedekt is
-3. **VIOLATIONS** - Hard/soft violations
-4. **REQUIRED ACTIONS** - Wat moet fixen
-5. **VERDICT** - ✅ COMPLIANT / ⚠️ CONDITIONAL / ❌ NON-COMPLIANT
-
----
-
-## Verdicts
-
-| Verdict | Betekenis | Actie |
-|---------|-----------|-------|
-| ✅ COMPLIANT | Alles voldoet | Doorgaan |
-| ⚠️ CONDITIONAL | Soft violations | Doorgaan, fix binnen sprint |
-| ❌ NON-COMPLIANT | Hard violations | BLOKKEER tot gefixed |
-
----
-
-## Versie
-
-- **Demo AI Stack**: 1.0.0
-- **Datum**: 2026-01-13
-- **Auteur**: Mr. Biggles + Claude
-
----
+- `docs/START_HERE.md`
+- `docs/SOURCES_OF_TRUTH.md`
+- `docs/CTO_RULES.md`
+- `docs/UNIVERSAL_CTO_REPO_SCAN_PROMPT_v2.md`
+- `SECURITY.md`
 
 ## Licentie
 
-MIT - Vrij te gebruiken en aan te passen.
+MIT — zie `LICENSE`.
+`.

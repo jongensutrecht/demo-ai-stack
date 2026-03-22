@@ -1,96 +1,164 @@
 #!/usr/bin/env python3
-"""CTO Guard output format details.
+"""CTO Guard output format details for the full Universal CTO Review v2.4.
 
 Usage:
     python format.py          # Show all sections
-    python format.py example  # Show full example
-    python format.py verdicts # Show verdict types
+    python format.py example  # Show example skeleton
+    python format.py verdicts # Show verdict model
 """
+from __future__ import annotations
+
 import sys
 
 SECTIONS = """
-## Verplichte 5 Secties
+## Mandatory report shape
 
-### 1. CTO RULES APPLIED
+1. Executive Summary
+2. Facet Scores Overview
+3. Per-facet detail
+4. Consolidated Gap Table
+5. Prioritized Action Plan
+6. Path to 10/10
+
+### 1. Executive Summary
 ```markdown
-## 1. CTO RULES APPLIED
+## 1. Executive Summary
 
-| Rule ID | Rule Description |
-|---------|------------------|
-| SEC-001 | Geen public endpoints voor mutaties |
-| TEST-001 | Alle code heeft tests |
+- Repo: `/absolute/repo/path`
+- Review target: `working tree`
+- Review scope: `repo_only`
+- In scope:
+  - runtime code under `src/`
+  - tests under `tests/`
+- Out of scope:
+  - live cloud state
+- UNKNOWN external state:
+  - branch protection in GitHub (verify with `gh api ...`)
+- Git state: `main @ abc1234 (dirty)`
+- Overall status: `PASS`
+- Overall score: `8.7`
+- Confidence: `MEDIUM`
+- Bottom line: feature is acceptable but maintainability + doc drift remain.
 ```
 
-### 2. TRACEABILITY MAP
+### 2. Facet Scores Overview
 ```markdown
-## 2. TRACEABILITY MAP
+## 2. Facet Scores Overview
 
-| Rule ID | Covered? | Evidence |
-|---------|----------|----------|
-| SEC-001 | YES | `adapter/routes/health.py:15` - auth=admin_key |
-| TEST-001 | NO | Geen tests gevonden voor nieuwe functie |
+| Facet | Applicability | Score | Confidence | Unresolved gaps | Note |
+|------|---------------|-------|------------|-----------------|------|
+| Architectuur | Applicable | 8.5 | HIGH | 1 | Boundaries mostly clear |
+| Feature Flags | N/A | N/A | HIGH | 0 | No flag system exists |
+| Domain/Spec Compliance | UNKNOWN | UNKNOWN | LOW | 0 | External contract not proven |
 ```
 
-### 3. VIOLATIONS
+### 3. Per-facet detail
 ```markdown
-## 3. VIOLATIONS
+## 3. Per-facet detail
 
-### Hard Violations (MUST FIX)
-| ID | Rule | Violation | Location |
-|----|------|-----------|----------|
-| V1 | SEC-001 | Public endpoint voor mutatie | `adapter/routes/data.py:42` |
+### 3.1 Security
+- Applicability: Applicable
+- Score: 9.0
+- Confidence: HIGH
+- Strengths:
+  - `src/auth/guard.ts:14` validates session before mutation.
 
-### Soft Violations (FIX OR JUSTIFY)
-| ID | Rule | Violation | Location |
-|----|------|-----------|----------|
-| V2 | DOC-001 | Ontbrekende docstring | `utils/helper.py:10` |
+#### CTO Rules Applied
+| Rule / Guardrail | Why relevant |
+|------------------|-------------|
+| SEC-001 | mutation path touches auth |
+| Repo-10x search hygiene | touched docs + runtime search contract |
+
+#### Traceability Map
+| Rule / Facet / Guardrail | Covered? | Evidence |
+|--------------------------|----------|----------|
+| SEC-001 | YES | `src/auth/guard.ts:14` |
+| Security facet | PARTIAL | missing explicit audit event at `src/api/items.ts:88` |
+
+#### Gaps
+| ID | Primary Owner | Priority | Status | Gap | Evidence | Closure DoD | Cross-refs |
+|----|---------------|----------|--------|-----|----------|-------------|------------|
+| GAP-SECURITY-01 | Security | P2 | OPEN | Delete path lacks audit log | `src/api/items.ts:88` | audit event emitted in delete flow + test | GAP-OPS-02 |
 ```
 
-### 4. REQUIRED ACTIONS
+### 4. Consolidated Gap Table
 ```markdown
-## 4. REQUIRED ACTIONS
+## 4. Consolidated Gap Table
 
-| Action | Priority | Details |
-|--------|----------|---------|
-| Add auth to /data endpoint | P1 | Voeg `Depends(require_admin)` toe |
-
-**STATUS**: BLOCKED until V1 is resolved
+| ID | Primary Owner | Priority | Status | Summary | Evidence | Closure DoD | Cross-refs |
+|----|---------------|----------|--------|---------|----------|-------------|------------|
+| GAP-SECURITY-01 | Security | P2 | OPEN | Delete path lacks audit log | `src/api/items.ts:88` | add audit event + test | GAP-OPS-02 |
+| GAP-DOCS-01 | Documentation | P3 | OPEN | Missing source-of-truth note for toggle contract | `docs/spec.md:1` | add contract note + link from START_HERE | None |
 ```
 
-### 5. CTO COMPLIANCE VERDICT
+### 5. Prioritized Action Plan
 ```markdown
-## 5. CTO COMPLIANCE VERDICT
+## 5. Prioritized Action Plan
 
-### NON-COMPLIANT
+### P1-CRITICAL
+None
 
-**Reason**: 1 hard violation (SEC-001)
+### P1-QUICK
+None
 
-**Next Steps**:
-1. Fix V1 (auth op /data endpoint)
-2. Re-run `/cto-guard`
+### P2
+- Add audit trail to delete flow (`src/api/items.ts`)
+  - Why: closes Security + Ops/Reliability gap
+  - Evidence: `src/api/items.ts:88`
+  - Closure: event emitted + tested
+
+### P3
+- Document toggle source of truth in docs
+  - Why: removes doc drift
+  - Evidence: `docs/spec.md:1`
+  - Closure: docs linked from START_HERE / SOURCES_OF_TRUTH
+```
+
+### 6. Path to 10/10
+```markdown
+## 6. Path to 10/10
+
+- What blocks 10/10 now:
+  - unresolved P2 security/ops gap
+  - external branch protection still UNKNOWN
+- What is already strong:
+  - tests green
+  - clear runtime toggle bootstrap
+- Exact order of attack:
+  1. close GAP-SECURITY-01
+  2. close GAP-DOCS-01
+  3. verify branch protection with `gh api ...`
+- Proceed or block:
+  - CONDITIONAL: feature may proceed, but not 10/10 yet
+- Generated BMAD follow-up:
+  - triggered: yes
+  - `bmad_input/cto_guard_followup_toggle_review_20260317.md`
+  - `bmad_input/cto_guard_followup_toggle_review_20260317.json`
+  - mapping: P2 -> BMAD P1, P3 -> BMAD P3
 ```
 """
 
 VERDICTS = """
-## Verdict Types
+## Verdict model
 
-| Verdict | Meaning | Action |
-|---------|---------|--------|
-| COMPLIANT | Alles voldoet | Doorgaan |
-| CONDITIONAL | Soft violations | Doorgaan, fix binnen sprint |
-| NON-COMPLIANT | Hard violations | BLOKKEER tot gefixed |
+- COMPLIANT: no blocking violations in reviewed scope
+- CONDITIONAL: acceptable with explicit unresolved gaps
+- NON-COMPLIANT: blocking gaps remain; stop until fixed
 
-## Rules
+## Universal CTO requirements
 
-- Geen impliciete compliance: Elke regel moet expliciet gecheckt
-- Evidence verplicht: Elke claim heeft file:line of command output
-- Blokkeren is OK: Liever blokkeren dan slechte code doorlaten
+- Facet Scores Overview is mandatory
+- P1, P2 and P3 must all be explicit
+- Path to 10/10 is mandatory
+- UNKNOWN claims require exactly 1 verification check
+- Every claim needs evidence
 """
 
-def main():
+
+def main() -> None:
     if len(sys.argv) < 2:
-        print("CTO Guard Output Format")
-        print("=" * 50)
+        print("CTO Guard Output Format — Universal CTO Review v2.4")
+        print("=" * 58)
         print(SECTIONS)
         return
 
@@ -102,6 +170,7 @@ def main():
     else:
         print(f"Unknown command: {cmd}")
         print("Usage: python format.py [example|verdicts]")
+
 
 if __name__ == "__main__":
     main()

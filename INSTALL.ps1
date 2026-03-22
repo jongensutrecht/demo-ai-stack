@@ -8,16 +8,18 @@ param(
 $ErrorActionPreference = "Stop"
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Demo AI Stack Installer v1.0.0" -ForegroundColor Cyan
+Write-Host "  Demo AI Stack Installer v1.1.0" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. Installeer global skills
+$repoRoot = $PSScriptRoot
+
+# 1. Installeer global skills vanuit de canonieke repo-bron
 $globalSkillsPath = Join-Path $env:USERPROFILE ".claude\skills"
-$skillsRoot = Join-Path $PSScriptRoot "skills"
+$skillsRoot = Join-Path $repoRoot "skills"
 
 if (-not (Test-Path $skillsRoot)) {
-    Write-Host "[-] Skills folder niet gevonden: $skillsRoot" -ForegroundColor Red
+    Write-Host "[-] Canonieke skills folder niet gevonden: $skillsRoot" -ForegroundColor Red
     exit 1
 }
 
@@ -30,45 +32,59 @@ $skills = Get-ChildItem -Path $skillsRoot -Directory | Select-Object -ExpandProp
 foreach ($skill in $skills) {
     $source = Join-Path $skillsRoot $skill
     $dest = Join-Path $globalSkillsPath $skill
-
-    if (Test-Path $source) {
-        Write-Host "[+] Installeer skill: $skill" -ForegroundColor Green
-        Copy-Item -Recurse -Force $source $dest
-    } else {
-        Write-Host "[-] Skill niet gevonden: $skill" -ForegroundColor Red
-    }
+    Write-Host "[+] Installeer skill: $skill" -ForegroundColor Green
+    Copy-Item -Recurse -Force $source $dest
 }
 
 Write-Host ""
-Write-Host "[OK] Global skills geinstalleerd in: $globalSkillsPath" -ForegroundColor Green
+Write-Host "[OK] Global skills geinstalleerd vanuit: $skillsRoot" -ForegroundColor Green
+Write-Host "[OK] Doelpad: $globalSkillsPath" -ForegroundColor Green
 Write-Host "[OK] Aantal skills: $($skills.Count)" -ForegroundColor Green
 Write-Host ""
 
-# 2. Kopieer kit naar project (optioneel)
+# 2. Kopieer governance-kit naar project (optioneel)
 if ($ProjectPath -ne "") {
     if (-not (Test-Path $ProjectPath)) {
         Write-Host "[-] Project path bestaat niet: $ProjectPath" -ForegroundColor Red
         exit 1
     }
 
-    Write-Host "[+] Kopieer BMAD kit naar project..." -ForegroundColor Yellow
+    Write-Host "[+] Kopieer BMAD kit + governance contract naar project..." -ForegroundColor Yellow
 
-    $kitSource = Join-Path $PSScriptRoot "bmad_autopilot_kit"
-    $kitDest = Join-Path $ProjectPath "bmad_autopilot_kit"
-    Copy-Item -Recurse -Force $kitSource $kitDest
+    $copyTargets = @(
+        @{ Source = "bmad_autopilot_kit"; Destination = "bmad_autopilot_kit" },
+        @{ Source = "docs\CTO_RULES.md"; Destination = "docs\CTO_RULES.md" },
+        @{ Source = "docs\UNIVERSAL_CTO_REPO_SCAN_PROMPT_v2.md"; Destination = "docs\UNIVERSAL_CTO_REPO_SCAN_PROMPT_v2.md" },
+        @{ Source = "docs\START_HERE.md"; Destination = "docs\START_HERE.md" },
+        @{ Source = "docs\SOURCES_OF_TRUTH.md"; Destination = "docs\SOURCES_OF_TRUTH.md" },
+        @{ Source = "docs\FILE_LIMITS_EXCEPTIONS.md"; Destination = "docs\FILE_LIMITS_EXCEPTIONS.md" },
+        @{ Source = "SECURITY.md"; Destination = "SECURITY.md" },
+        @{ Source = "scripts\validate_cto_rules_registry.py"; Destination = "scripts\validate_cto_rules_registry.py" },
+        @{ Source = "scripts\quality_gates.py"; Destination = "scripts\quality_gates.py" },
+        @{ Source = "scripts\check_repo_contract.py"; Destination = "scripts\check_repo_contract.py" },
+        @{ Source = "scripts\check_repo_10x_contract.py"; Destination = "scripts\check_repo_10x_contract.py" },
+        @{ Source = "scripts\check_search_hygiene.py"; Destination = "scripts\check_search_hygiene.py" },
+        @{ Source = "scripts\check_file_limits.py"; Destination = "scripts\check_file_limits.py" },
+        @{ Source = "config\golden_queries.txt"; Destination = "config\golden_queries.txt" },
+        @{ Source = "config\repo_root_allowlist.txt"; Destination = "config\repo_root_allowlist.txt" },
+        @{ Source = ".ignore"; Destination = ".ignore" }
+    )
 
-    $docsSource = Join-Path $PSScriptRoot "docs"
-    $docsDest = Join-Path $ProjectPath "docs"
-    if (-not (Test-Path $docsDest)) {
-        New-Item -ItemType Directory -Path $docsDest -Force | Out-Null
+    foreach ($target in $copyTargets) {
+        $source = Join-Path $repoRoot $target.Source
+        $destination = Join-Path $ProjectPath $target.Destination
+        $destDir = Split-Path -Parent $destination
+        if ($destDir -and -not (Test-Path $destDir)) {
+            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        }
+        Copy-Item -Recurse -Force $source $destination
     }
-    Copy-Item -Force (Join-Path $docsSource "CTO_RULES.md") $docsDest
 
-    Write-Host "[OK] BMAD kit gekopieerd naar: $ProjectPath" -ForegroundColor Green
+    Write-Host "[OK] BMAD kit + governance files gekopieerd naar: $ProjectPath" -ForegroundColor Green
 } else {
-    Write-Host "[INFO] Geen project opgegeven. Kopieer handmatig:" -ForegroundColor Yellow
-    Write-Host "  Copy-Item -Recurse .\bmad_autopilot_kit\ <jouw-project>\" -ForegroundColor Gray
-    Write-Host "  Copy-Item .\docs\CTO_RULES.md <jouw-project>\docs\" -ForegroundColor Gray
+    Write-Host "[INFO] Geen project opgegeven. Handmatige installatiestappen:" -ForegroundColor Yellow
+    Write-Host "  Copy-Item -Recurse .\skills\* $env:USERPROFILE\.claude\skills\" -ForegroundColor Gray
+    Write-Host "  .\INSTALL.ps1 -ProjectPath <jouw-project>" -ForegroundColor Gray
 }
 
 Write-Host ""
@@ -76,6 +92,4 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Installatie voltooid!" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Beschikbare skills:" -ForegroundColor White
-Write-Host "  (Zie ~/.claude/skills voor alle geïnstalleerde skills)" -ForegroundColor Gray
-Write-Host ""
+Write-Host "Zie docs/START_HERE.md voor gates en troubleshooting." -ForegroundColor White

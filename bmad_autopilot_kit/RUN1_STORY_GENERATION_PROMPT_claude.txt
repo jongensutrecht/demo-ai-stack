@@ -35,7 +35,8 @@ Each story file MUST:
    - [ ] Lees CLAUDE.md (repo-root) voor project regels en context
 
 3) LAST TASK (hard): Every story's Tasks/Subtasks section MUST end with:
-   - [ ] Run Gate A checks: `ruff check . && ruff format --check . && pytest` (alle checks moeten groen zijn)
+   - [ ] Run primary quality gate: `python3 scripts/quality_gates.py` (als dit entrypoint bestaat; alle checks moeten groen zijn)
+   - [ ] Run smallest relevant runtime checks for changed paths (lint/test/build only where applicable)
 
 4) Acceptance Criteria (ACs):
    - Every AC has EXACTLY 1 verification command + Expected output/exit/result.

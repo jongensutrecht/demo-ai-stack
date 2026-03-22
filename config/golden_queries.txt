@@ -1,0 +1,8 @@
+# Golden queries should land on canonical runtime/docs, not mirrors or artefacts
+CTO Rule Registry
+Universal CTO Repo Scan Prompt
+quality_gates.py
+START_HERE.md
+SOURCES_OF_TRUTH.md
+skills/bmad-bundle/SKILL.md
+story_runner.py

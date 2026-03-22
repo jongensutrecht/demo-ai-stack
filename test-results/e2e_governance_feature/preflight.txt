@@ -1,0 +1,13 @@
+RepoRoot:   /home/mrbiggles/dev/github.com/jongensutrecht/demo-ai-stack
+Process:    repo_10x_governance_status
+StoriesDir: /home/mrbiggles/dev/github.com/jongensutrecht/demo-ai-stack/stories/repo_10x_governance_status
+ProcessFile:/home/mrbiggles/dev/github.com/jongensutrecht/demo-ai-stack/docs/processes/repo_10x_governance_status/PROCESS.md
+
+
+[32;1mStory  [0m[32;1m   OK[0m[32;1m Status       [0m[32;1m Verifications[0m[32;1m Allowlist[0m[32;1m Errors[0m[32;1m Warnings[0m
+[32;1m-----  [0m [32;1m  --[0m [32;1m------       [0m [32;1m-------------[0m [32;1m---------[0m [32;1m------[0m [32;1m--------[0m
+OPS-001 True ready-for-dev             3         7      0        0
+
+
+WARNINGS:
+- Ignoring non-story markdown file in stories dir: BACKLOG.md

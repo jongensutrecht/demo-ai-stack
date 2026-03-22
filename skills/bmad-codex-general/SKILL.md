@@ -13,14 +13,15 @@ This is a generalization of the repo-specific BMAD workflows. It avoids hardcode
 
 ## Hard Rules (non-negotiable)
 
-- Read repo-root `AGENTS.md` and `CTO_RULES.md` before starting (if they exist).
+- Read repo-root `AGENTS.md` and `docs/CTO_RULES.md` before starting (if they exist).
 - Base everything from GitHub-main (`origin/main`).
 - Merge only inside a dedicated merge worktree under:
   `<REPO_ROOT>/worktrees_claude/merge/<process>/main-merge`
 - Do not merge into the repo main working tree (the folder you normally open) without explicit GO.
 - Each story has its own worktree and branch; no multi-story worktrees.
 - If continuing the same story in a new context window, you MUST write a handoff file and restart in a fresh Claude Code session (see "5b").
-- Non-test files: max 300 lines and max 20 functions.
+- Non-test files: max 300 lines and max 15 functions.
+- If `scripts/quality_gates.py` exists in the target repo, it is the primary quality gate and must pass before merge.
 - Proof gate is mandatory: `output/bmad/<process>/<run_id>/<story_id>/final.json` with `done=true` and metadata keys.
 - No mocks for business logic; IO stubs only if based on existing fixtures.
 - Proof/verify attempts are capped at 3 per story by default (then the story becomes [BLOCKED]).
@@ -55,7 +56,8 @@ In the target repo root:
 git rev-parse --show-toplevel
 git fetch origin
 test -f AGENTS.md || true
-test -f CTO_RULES.md || true
+test -f docs/CTO_RULES.md || true
+test -f scripts/quality_gates.py || true
 test -f scripts/bmad_bundle.py
 ```
 
@@ -119,11 +121,13 @@ If `$STORY_WT` exists, stop and clean it first; do not reuse paths.
 Follow repo rules. Default for runtime changes:
 
 ```bash
+test -f scripts/quality_gates.py && python3 scripts/quality_gates.py || true
 ruff check .
 ruff format --check .
 pytest -q <targeted-tests>
 ```
 
+If `scripts/quality_gates.py` exists, it is the primary gate; keep running the smallest relevant path-specific checks alongside it.
 If coverage gate is in scope, run the smallest coverage command that proves the changed paths.
 
 Docs-only changes: no tests required.
@@ -216,6 +220,7 @@ git branch -d "$BRANCH"
 ```
 
 After all stories are merged into `main-merge`, STOP and wait for explicit GO before merging into the repo main working tree.
+This is the only intended human stop-point; do not stop after RUN1 or RUN2.
 
 ### 8) Final merge + cleanup (ONLY after explicit GO)
 
@@ -231,6 +236,13 @@ rmdir "$WT_ROOT" 2>/dev/null || true
 Notes:
 - Git merges commits, not file subsets. This merges stories + docs + bmad_input + outputs that were committed.
 - Never force push or rewrite history unless explicitly requested.
+
+## Operational defaults
+
+- Prefer `rg` for search.
+- Use non-destructive git commands by default.
+- Never lower thresholds or add skips to fake green.
+ory unless explicitly requested.
 
 ## Operational defaults
 

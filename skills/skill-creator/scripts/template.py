@@ -78,7 +78,7 @@ STRUCTURE = """
 ## Folder Structuur
 
 ```
-.claude/skills/<skill-name>/
+skills/<skill-name>/
 ├── SKILL.md              # Lean, max 50 regels
 ├── knowledge/            # Details (Claude laadt on-demand)
 │   └── <topic>.md

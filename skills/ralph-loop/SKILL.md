@@ -43,7 +43,7 @@ Details: `python scripts/workflow.py`
 
 1. **100% completion** - Stop NOOIT tot ALLE stories [DONE] of [BLOCKED]
 2. **Subprocess per story** - Nooit in huidige context uitvoeren
-3. **File limits** - Max 300 regels + max 20 functies per niet-test file (tests uitgezonderd)
+3. **File limits** - Max 300 regels + max 15 functies per niet-test file (tests uitgezonderd)
 
 ## Referenties
 

@@ -1,11 +1,31 @@
 # Story runner
 
-Run a process:
-- `python tools/story-runner/story_runner.py show --process docs/processes/cto_repo_scan_2026_01/PROCESS.md`
-- `python tools/story-runner/story_runner.py verify --process docs/processes/cto_repo_scan_2026_01/PROCESS.md`
+Story runner leest een `docs/processes/<process>/PROCESS.md`, resolve't de bijbehorende stories en kan de verification-commando's uitvoeren.
 
-JSON output:
-- `python tools/story-runner/story_runner.py verify --process docs/processes/cto_repo_scan_2026_01/PROCESS.md --json-output artifacts/debug/story-runner.json`
+## Veiligheid
+
+**Voer dit alleen uit op vertrouwde story input.**
+
+Story files kunnen arbitraire shell-commando's bevatten. Daarom voert `verify` niets uit zonder expliciete opt-in:
+- gebruik `--allow-shell`
+- gebruik dit niet op onbetrouwbare of extern aangeleverde stories
+
+## Gebruik
+
+### Story-volgorde tonen
+```bash
+python tools/story-runner/story_runner.py show --process docs/processes/cto_repo_scan_2026_01/PROCESS.md
+```
+
+### Verificaties uitvoeren (expliciete opt-in verplicht)
+```bash
+python tools/story-runner/story_runner.py verify --process docs/processes/cto_repo_scan_2026_01/PROCESS.md --allow-shell
+```
+
+### JSON output
+```bash
+python tools/story-runner/story_runner.py verify --process docs/processes/cto_repo_scan_2026_01/PROCESS.md --allow-shell --json-output artifacts/debug/story-runner.json
+```
 
 ## Formats ondersteund
 
@@ -13,7 +33,7 @@ JSON output:
 - Verification regels:
   - `- **Verification (repo-root):** \`...\``
   - `- Verification (cwd=path): \`...\``
-  - Legacy zonder bold is toegestaan
+  - legacy zonder bold is toegestaan
 - Expected:
-  - `exit code N` (case-insensitive) → exitcode match
+  - `exit code N` → exitcode match
   - anders → substring match in stdout/stderr

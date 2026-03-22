@@ -1,7 +1,7 @@
 ---
 name: create-skill
 # prettier-ignore
-description: Maak een nieuwe Claude Code skill met correcte structuur en best practices.
+description: Maak een nieuwe repo-canonieke Claude Code skill met correcte structuur.
 allowed-tools: Read, Write, Bash
 user-invocable: true
 ---
@@ -9,7 +9,7 @@ user-invocable: true
 # Create Skill
 
 ## Doel
-Genereer een nieuwe skill folder met SKILL.md volgens de standaard.
+Genereer een nieuwe skill folder onder de canonieke repo-bron: `skills/<naam>/`.
 
 ## Wanneer Gebruiken
 - `/create-skill`
@@ -24,16 +24,15 @@ Vraag de gebruiker om:
 4. **Trigger phrases** (wanneer activeren)
 
 ## Stappen
-
 1. Valideer skill naam (kebab-case, geen spaties)
-2. Maak folder: `.claude/skills/<naam>/`
+2. Maak folder: `skills/<naam>/`
 3. Maak `knowledge/` subfolder
 4. Genereer `SKILL.md` volgens [template](knowledge/template.md)
 5. Toon resultaat aan gebruiker
 
 ## Output
-```
-.claude/skills/<naam>/
+```text
+skills/<naam>/
 ├── SKILL.md
 └── knowledge/
     └── (leeg, voor details)
@@ -43,4 +42,5 @@ Vraag de gebruiker om:
 - Description MOET single-line zijn
 - `# prettier-ignore` BOVEN description
 - SKILL.md max 50 regels
-- Details in knowledge/*.md, NIET in SKILL.md
+- Details in `knowledge/*.md`, NIET in `SKILL.md`
+- `skills/` is de canonieke repo-bron; distributie naar `~/.claude/skills` gebeurt via installer/sync tooling

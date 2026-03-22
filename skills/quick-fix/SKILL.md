@@ -43,7 +43,7 @@ Details: `python scripts/workflow.py`
 | > 50 regels | STOP → `/start-bmad-ralph` |
 | 3 iteraties fail | STOP → `/start-bmad-ralph` |
 | Geen test | STOP → schrijf test eerst |
-| File > 300 regels of > 20 functies (niet-test) | STOP → splits file (tests uitgezonderd) |
+| File > 300 regels of > 15 functies (niet-test) | STOP → splits file (tests uitgezonderd) |
 
 ## Voorbeeld
 

@@ -1,0 +1,24 @@
+== Demo AI Stack primary quality gate ==
+RUN python3 scripts/validate_cto_rules_registry.py
+OK: CTO Rule Registry is valid
+rules_count=24
+OK  python3 scripts/validate_cto_rules_registry.py
+RUN python3 scripts/check_repo_contract.py
+OK: repo contract valid
+checked_files=17
+allowed_top_level=22
+OK  python3 scripts/check_repo_contract.py
+RUN python3 scripts/check_repo_10x_contract.py
+OK: repo-10x contract valid
+checked_docs=4
+OK  python3 scripts/check_repo_10x_contract.py
+RUN python3 scripts/check_search_hygiene.py
+OK: search hygiene valid
+golden_queries=7
+OK  python3 scripts/check_search_hygiene.py
+RUN python3 scripts/check_file_limits.py
+OK: file limits valid
+max_lines=300
+max_functions=15
+OK  python3 scripts/check_file_limits.py
+OK: all quality gates passed

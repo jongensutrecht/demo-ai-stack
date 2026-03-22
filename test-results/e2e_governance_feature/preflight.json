@@ -1,0 +1,20 @@
+{
+  "repo_root": "/home/mrbiggles/dev/github.com/jongensutrecht/demo-ai-stack",
+  "process": "repo_10x_governance_status",
+  "results": [
+    {
+      "Story": "OPS-001",
+      "OK": true,
+      "Status": "ready-for-dev",
+      "Verifications": 3,
+      "Allowlist": 7,
+      "File": "/home/mrbiggles/dev/github.com/jongensutrecht/demo-ai-stack/stories/repo_10x_governance_status/OPS-001.md",
+      "Errors": 0,
+      "Warnings": 0
+    }
+  ],
+  "warnings": [
+    "Ignoring non-story markdown file in stories dir: BACKLOG.md"
+  ],
+  "errors": []
+}
